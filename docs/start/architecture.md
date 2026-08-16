@@ -19,7 +19,7 @@ ATV-Teams is a monorepo with four main layers.
 │  Schema, migrations, embedded mode  │
 ├─────────────────────────────────────┤
 │  Adapters                           │
-│  Claude Local, Codex Local,         │
+│  Claude Code, Codex,                │
 │  Process, HTTP                      │
 └─────────────────────────────────────┘
 ```

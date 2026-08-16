@@ -1,6 +1,6 @@
 ---
 name: wiki-ingest
-description: Use when an operation issue asks you to ingest a captured source from `raw/` into the LLM Wiki, or when the user explicitly says "ingest <slug>". The issue body will name a file under `raw/` (e.g. `raw/karpathy-llm-wiki.md`) and ask for durable wiki pages. Do not invoke this skill for ATV-Teams activity bundles — those use `paperclip-distill` instead.
+description: Use when an operation issue asks to ingest a captured `raw/` source into the LLM Wiki, or the user says "ingest <slug>". Create durable source, entity, concept, synthesis, index, and log pages; use atv-distill for ATV-Teams bundles.
 ---
 
 # Wiki Ingest

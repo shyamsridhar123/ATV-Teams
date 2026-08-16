@@ -1,7 +1,7 @@
-const FAVICON_BLOCK_START = "<!-- ATV_TEAMS_FAVICON_START -->";
-const FAVICON_BLOCK_END = "<!-- ATV_TEAMS_FAVICON_END -->";
-const RUNTIME_BRANDING_BLOCK_START = "<!-- ATV_TEAMS_RUNTIME_BRANDING_START -->";
-const RUNTIME_BRANDING_BLOCK_END = "<!-- ATV_TEAMS_RUNTIME_BRANDING_END -->";
+const FAVICON_BLOCK_START = "<!-- PAPERCLIP_FAVICON_START -->";
+const FAVICON_BLOCK_END = "<!-- PAPERCLIP_FAVICON_END -->";
+const RUNTIME_BRANDING_BLOCK_START = "<!-- PAPERCLIP_RUNTIME_BRANDING_START -->";
+const RUNTIME_BRANDING_BLOCK_END = "<!-- PAPERCLIP_RUNTIME_BRANDING_END -->";
 
 const DEFAULT_FAVICON_LINKS = [
   '<link rel="icon" href="/favicon.ico" sizes="48x48" />',
@@ -16,6 +16,13 @@ export type WorktreeUiBranding = {
   color: string | null;
   textColor: string | null;
   faviconHref: string | null;
+  /**
+   * Runtime instance id for this worktree preview. Surfaced to the client so
+   * the experimental "Run tasks in this worktree" card can fail closed when a
+   * copied settings row was armed in a different instance. Null outside a
+   * worktree or when the runtime id is unset.
+   */
+  instanceId: string | null;
 };
 
 function isTruthyEnvValue(value: string | undefined): boolean {
@@ -152,6 +159,7 @@ export function getWorktreeUiBranding(env: NodeJS.ProcessEnv = process.env): Wor
       color: null,
       textColor: null,
       faviconHref: null,
+      instanceId: null,
     };
   }
 
@@ -165,6 +173,7 @@ export function getWorktreeUiBranding(env: NodeJS.ProcessEnv = process.env): Wor
     color,
     textColor,
     faviconHref: createFaviconDataUrl(color, textColor),
+    instanceId: nonEmpty(env.PAPERCLIP_INSTANCE_ID),
   };
 }
 
@@ -181,12 +190,16 @@ export function renderFaviconLinks(branding: WorktreeUiBranding): string {
 export function renderRuntimeBrandingMeta(branding: WorktreeUiBranding): string {
   if (!branding.enabled || !branding.name || !branding.color || !branding.textColor) return "";
 
-  return [
-    '<meta name="atv-teams-worktree-enabled" content="true" />',
-    `<meta name="atv-teams-worktree-name" content="${escapeHtmlAttribute(branding.name)}" />`,
-    `<meta name="atv-teams-worktree-color" content="${escapeHtmlAttribute(branding.color)}" />`,
-    `<meta name="atv-teams-worktree-text-color" content="${escapeHtmlAttribute(branding.textColor)}" />`,
-  ].join("\n");
+  const tags = [
+    '<meta name="atv-worktree-enabled" content="true" />',
+    `<meta name="atv-worktree-name" content="${escapeHtmlAttribute(branding.name)}" />`,
+    `<meta name="atv-worktree-color" content="${escapeHtmlAttribute(branding.color)}" />`,
+    `<meta name="atv-worktree-text-color" content="${escapeHtmlAttribute(branding.textColor)}" />`,
+  ];
+  if (branding.instanceId) {
+    tags.push(`<meta name="atv-instance-id" content="${escapeHtmlAttribute(branding.instanceId)}" />`);
+  }
+  return tags.join("\n");
 }
 
 function replaceMarkedBlock(html: string, startMarker: string, endMarker: string, content: string): string {

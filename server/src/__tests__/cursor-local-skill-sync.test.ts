@@ -28,7 +28,7 @@ describe("cursor local skill sync", () => {
   });
 
   it("reports configured ATV-Teams skills and installs them into the Cursor skills home", async () => {
-    const home = await makeTempDir("paperclip-cursor-skill-sync-");
+    const home = await makeTempDir("atv-cursor-skill-sync-");
     cleanupDirs.add(home);
 
     const ctx = {
@@ -48,7 +48,6 @@ describe("cursor local skill sync", () => {
     const before = await listCursorSkills(ctx);
     expect(before.mode).toBe("persistent");
     expect(before.desiredSkills).toContain(paperclipKey);
-    expect(before.entries.find((entry) => entry.key === paperclipKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("missing");
 
     const after = await syncCursorSkills(ctx, [paperclipKey]);
@@ -57,8 +56,8 @@ describe("cursor local skill sync", () => {
   });
 
   it("recognizes company-library runtime skills supplied outside the bundled ATV-Teams directory", async () => {
-    const home = await makeTempDir("paperclip-cursor-runtime-skills-home-");
-    const runtimeSkills = await makeTempDir("paperclip-cursor-runtime-skills-src-");
+    const home = await makeTempDir("atv-cursor-runtime-skills-home-");
+    const runtimeSkills = await makeTempDir("atv-cursor-runtime-skills-src-");
     cleanupDirs.add(home);
     cleanupDirs.add(runtimeSkills);
 
@@ -78,8 +77,6 @@ describe("cursor local skill sync", () => {
             key: "paperclip",
             runtimeName: "paperclip",
             source: paperclipDir,
-            required: true,
-            requiredReason: "Bundled ATV-Teams skills are always available for local adapters.",
           },
           {
             key: "ascii-heart",
@@ -95,7 +92,7 @@ describe("cursor local skill sync", () => {
 
     const before = await listCursorSkills(ctx);
     expect(before.warnings).toEqual([]);
-    expect(before.desiredSkills).toEqual(["paperclip", "ascii-heart"]);
+    expect(before.desiredSkills).toEqual(["ascii-heart"]);
     expect(before.entries.find((entry) => entry.key === "ascii-heart")?.state).toBe("missing");
 
     const after = await syncCursorSkills(ctx, ["ascii-heart"]);
@@ -104,41 +101,4 @@ describe("cursor local skill sync", () => {
     expect((await fs.lstat(path.join(home, ".cursor", "skills", "ascii-heart"))).isSymbolicLink()).toBe(true);
   });
 
-  it("keeps required bundled ATV-Teams skills installed even when the desired set is emptied", async () => {
-    const home = await makeTempDir("paperclip-cursor-skill-prune-");
-    cleanupDirs.add(home);
-
-    const configuredCtx = {
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "cursor",
-      config: {
-        env: {
-          HOME: home,
-        },
-        paperclipSkillSync: {
-          desiredSkills: [paperclipKey],
-        },
-      },
-    } as const;
-
-    await syncCursorSkills(configuredCtx, [paperclipKey]);
-
-    const clearedCtx = {
-      ...configuredCtx,
-      config: {
-        env: {
-          HOME: home,
-        },
-        paperclipSkillSync: {
-          desiredSkills: [],
-        },
-      },
-    } as const;
-
-    const after = await syncCursorSkills(clearedCtx, []);
-    expect(after.desiredSkills).toContain(paperclipKey);
-    expect(after.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("installed");
-    expect((await fs.lstat(path.join(home, ".cursor", "skills", "paperclip"))).isSymbolicLink()).toBe(true);
-  });
 });

@@ -1,5 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-import { S3Client } from "@aws-sdk/client-s3";
+import type { S3Client } from "@aws-sdk/client-s3";
 import type { DeploymentMode, SecretProviderConfigDiscoveryPreviewResult } from "@paperclipai/shared";
 import { unprocessable } from "../errors.js";
 import type {
@@ -36,6 +36,8 @@ interface AwsSecretsManagerMaterial extends StoredSecretVersionMaterial {
   secretId: string;
   versionId: string | null;
   source: "managed" | "external_reference";
+  lastWrittenVersionId?: string | null;
+  previousCurrentVersionId?: string | null;
 }
 
 interface AwsSecretsManagerConfig {
@@ -218,8 +220,21 @@ async function loadAwsCredentials(region: string): Promise<AwsCredentialIdentity
   if (!cached) {
     // S3Client is only used as a carrier for the AWS SDK default credential provider chain.
     // No S3 API calls are made here; switch to defaultProvider({ region }) if we add that dependency.
+    // The SDK is an optional dependency, so it is imported on demand: deployments that
+    // do not use the AWS secrets provider never need the package installed.
+    let S3ClientCtor: new (config: unknown) => S3Client;
+    try {
+      ({ S3Client: S3ClientCtor } = (await import("@aws-sdk/client-s3")) as unknown as {
+        S3Client: new (config: unknown) => S3Client;
+      });
+    } catch (err) {
+      throw unprocessable(
+        "The AWS secrets provider requires the optional @aws-sdk/client-s3 package. Install it with `pnpm add @aws-sdk/client-s3` in server/ to use aws_secrets_manager.",
+        { reason: err instanceof Error ? err.message : String(err) },
+      );
+    }
     cached = {
-      client: new S3Client({ region }),
+      client: new S3ClientCtor({ region }),
       credentials: null,
       expiresAt: 0,
       pending: null,
@@ -264,6 +279,7 @@ function configuredAwsSecretsManagerDescriptor() {
     requiresExternalRef: false,
     supportsManagedValues: true,
     supportsExternalReferences: true,
+    supportsExternalValueWrites: true,
     configured: canLoadAwsSecretsManagerConfig(),
   };
 }
@@ -1179,6 +1195,42 @@ export function createAwsSecretsManagerProvider(
       assertNotManagedNamespaceExternalRef(config, input.externalRef);
       return createExternalReferenceMaterial(input.externalRef, input.providerVersionRef ?? null);
     },
+    async updateExternalSecretValue(input) {
+      const config = resolveConfig(input.providerConfig);
+      assertNotManagedNamespaceExternalRef(config, input.externalRef);
+      const gateway = resolveGateway(config);
+      const secretId = input.externalRef.trim();
+
+      try {
+        const previous = await gateway.getSecretValue({
+          SecretId: secretId,
+          VersionStage: DEFAULT_VERSION_STAGE,
+        });
+        // No VersionStages: the new version becomes AWSCURRENT so every consumer of the
+        // referenced secret (not just Paperclip) picks up the new value.
+        const created = await gateway.putSecretValue({
+          SecretId: secretId,
+          SecretString: input.value,
+        });
+        const normalizedSecretId = created.ARN ?? created.Name ?? secretId;
+        // Material keeps versionId null so resolution keeps tracking AWSCURRENT and
+        // out-of-band rotations done directly in AWS still flow through.
+        const prepared = createExternalReferenceMaterial(normalizedSecretId, null);
+        const valueSha256 = sha256Hex(input.value);
+        return {
+          ...prepared,
+          material: {
+            ...prepared.material,
+            lastWrittenVersionId: created.VersionId ?? null,
+            previousCurrentVersionId: previous.VersionId ?? null,
+          },
+          valueSha256,
+          fingerprintSha256: valueSha256,
+        };
+      } catch (error) {
+        normalizeAwsError("updateExternalSecretValue", error);
+      }
+    },
     async listRemoteSecrets(input): Promise<RemoteSecretListResult> {
       const config = resolveConfig(input.providerConfig);
       const gateway = resolveGateway(config);
@@ -1277,10 +1329,31 @@ export function createAwsSecretsManagerProvider(
           ? asAwsSecretsManagerMaterial(input.material)
           : null;
 
-      if (material?.source !== "managed") return;
-
       const config = resolveConfig(input.providerConfig);
       const gateway = resolveGateway(config);
+
+      if (material?.source === "external_reference") {
+        if (
+          input.mode === "archive" &&
+          material.lastWrittenVersionId &&
+          material.previousCurrentVersionId &&
+          gateway.updateSecretVersionStage
+        ) {
+          try {
+            await gateway.updateSecretVersionStage({
+              SecretId: material.secretId,
+              VersionStage: DEFAULT_VERSION_STAGE,
+              MoveToVersionId: material.previousCurrentVersionId,
+              RemoveFromVersionId: material.lastWrittenVersionId,
+            });
+          } catch (error) {
+            normalizeAwsError("updateSecretVersionStage", error);
+          }
+        }
+        return;
+      }
+      if (material?.source !== "managed") return;
+
       const secretId = resolveManagedSecretRef({
         config,
         context: input.context,

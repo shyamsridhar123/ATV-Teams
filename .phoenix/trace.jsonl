@@ -1,0 +1,1 @@
+{"ts":"1786908838.242895300","tool":"sense","input_digest":"bdeaa4d253a419b832f7478f933d5358f0e1a98faa1de11fda89a82cb7c1a3e7","ok":false,"signal":"command_exit","evidence":"argv=[\"git\", \"merge-base\", \"--is-ancestor\", \"upstream/master\", \"HEAD\"] exit=1 expect=0 (182ms)\n","prev_hash":"GENESIS","hash":"c7ce3895fb8843fdb60d36425c1ab7bcef23ebc18acd0a7ebd1bf7e0e23a6bd3"}

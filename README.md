@@ -10,7 +10,7 @@
 
 ATV-Teams is a Node.js server and React UI that lets one person — or a small board — conduct a fleet of AI agents and stay in control of the work, the cost, and the calls that matter. Bring your own agents, set the goal, and run anything from a 2-agent solo project to a company with dozens of agents from one dashboard.
 
-It looks like a task manager — but under the hood it has org charts, budgets, governance, goal alignment, and agent coordination.
+It looks like a task manager. Under the hood: org charts, budgets, governance, goal alignment, and agent coordination.
 
 **You set the goal. Your AI team gets it done. You stay in the loop.**
 
@@ -64,6 +64,25 @@ Same control plane in every case.
 
 <br/>
 
+## The four pillars
+
+Four things have to work for an organization of AI agents to actually produce: the tasks, the org, the training, and the infrastructure. ATV-Teams is built around exactly those four pillars.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/shyamsridhar123/ATV-Teams/1ec33ffd8b597f7e36aac3e2fbb4665b8c42dc3c/doc/assets/four-pillars-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/shyamsridhar123/ATV-Teams/1ec33ffd8b597f7e36aac3e2fbb4665b8c42dc3c/doc/assets/four-pillars-light.png">
+  <img src="https://raw.githubusercontent.com/shyamsridhar123/ATV-Teams/1ec33ffd8b597f7e36aac3e2fbb4665b8c42dc3c/doc/assets/four-pillars-light.png" alt="The four pillars of ATV-Teams">
+</picture>
+
+| Pillar | Built for | What it covers |
+| --- | --- | --- |
+| **Agentic Task Manager** — Declare intent. Agents work. You verify the output. | Everyone, daily | Tasks, approvals & review gates · proactive agent coworkers · auditable routines & workflows · verify from diffs, screenshots & tests |
+| **Org Chart for Agents** — Roles, permissions & boundaries for humans and agents. | Managers | Mixed human + agent org chart · responsibilities, delegation, specialization · governance: who can do what · scoped secrets & company boundaries |
+| **Agent Employee Training** — Design, train & evaluate your AI employees. | Enablers | Skill Studio & shared org-wide skills · evals & saved test runs · active learning loops & quality metrics · performance reviews for agents |
+| **Agentic OS** — The infrastructure that makes the work run. | IT & platform | Cross-provider runtime: any model, any agent · sandboxing, integrations & MCP servers · SSO, GRC, RBAC & cost controls · data privacy, internal trace collection, compounding data value |
+
+<br/>
+
 ## Features
 
 <table>
@@ -98,7 +117,7 @@ Every conversation traced. Every decision explained. Full tool-call tracing and 
 <tr>
 <td align="center">
 <h3>🛡️ Governance</h3>
-You're the board. Approve hires, override strategy, pause or terminate any agent — at any time.
+Approve hires, override strategy, pause or terminate any agent — at any time.
 </td>
 <td align="center">
 <h3>📊 Org Chart</h3>
@@ -207,7 +226,7 @@ ATV-Teams is a full control plane, not a wrapper. Before you build any of this y
 </td>
 <td>
 
-**Governance & Approvals** — Board approval workflows, execution policies with review/approval stages, decision tracking, budget hard-stops, agent pause/resume/terminate, and full audit logging. You're the board — nothing ships without your sign-off.
+**Governance & Approvals** — Board approval workflows, execution policies with review/approval stages, decision tracking, budget hard-stops, agent pause/resume/terminate, and full audit logging. Nothing ships without your sign-off.
 
 </td>
 </tr>
@@ -268,21 +287,43 @@ ATV-Teams is a full control plane, not a wrapper. Before you build any of this y
 
 Open source. Self-hosted. No account required.
 
+ATV-Teams is not published to npm, so it runs from a clone:
+
 ```bash
-npx paperclipai onboard --yes
+git clone https://github.com/shyamsridhar123/ATV-Teams.git
+cd ATV-Teams
+pnpm install
+pnpm dev
 ```
 
-> **Note:** The CLI binary is still named `paperclipai` (kept for back-compat with the upstream install path). The product itself is ATV-Teams.
+That starts the API and UI on `http://localhost:3100` with an embedded PGlite
+database, so no separate PostgreSQL setup is needed for local development. Set
+`DATABASE_URL` to point at a real PostgreSQL instance instead.
 
-That quickstart path defaults to trusted local loopback mode for the fastest first run. To start in authenticated/private mode instead, choose a bind preset explicitly:
+Run the CLI through the root package script:
 
 ```bash
-npx paperclipai onboard --yes --bind lan
+pnpm paperclipai onboard --yes
+```
+
+Use `pnpm paperclipai`, not `npx paperclipai` — the CLI binary is still named
+`paperclipai` for back-compat, so `npx` would fetch the upstream package from
+npm rather than running this repo's code.
+
+To reset the local development database, delete `data/pglite` and start again.
+
+That quickstart path now defaults to trusted local loopback mode for the fastest first run. To start in authenticated/private mode instead, choose a bind preset explicitly:
+
+```bash
+paperclipai onboard --yes --bind lan
 # or:
-npx paperclipai onboard --yes --bind tailnet
+paperclipai onboard --yes --bind tailnet
 ```
 
 If you already have ATV-Teams configured, rerunning `onboard` keeps the existing config in place. Use `paperclipai configure` to edit settings.
+
+See [`doc/INSTALLING.md`](doc/INSTALLING.md) for pinned versions, canary and
+git-ref installs, updates, rollback, service management, and uninstalling.
 
 Or manually:
 
@@ -328,6 +369,8 @@ By default, Copilot-powered agents run on scheduled heartbeats and event-based t
 pnpm dev              # Full dev (API + UI, watch mode)
 pnpm dev:once         # Full dev without file watching
 pnpm dev:server       # Server only
+pnpm dev:mobile       # Serve prebuilt UI on :3101 for phones/tablets (proxies /api → :3100)
+pnpm dev:both         # Run `pnpm dev` and `pnpm dev:mobile` together
 pnpm build            # Build all
 pnpm typecheck        # Type checking
 pnpm test             # Cheap default test run (Vitest only)
@@ -349,32 +392,49 @@ See [doc/DEVELOPING.md](doc/DEVELOPING.md) for the full development guide.
 - ✅ GitHub Copilot agent employees
 - ✅ companies.sh - import and export entire organizations
 - ✅ Easy AGENTS.md configurations
-- ✅ Skills Manager
+- ✅ Skills Manager, Skill Studio & Skills Store
 - ✅ Scheduled Routines
 - ✅ Better Budgeting
 - ✅ Agent Reviews and Approvals
 - ✅ Multiple Human Users
-- ⚪ Cloud / Sandbox Copilot agents
-- ⚪ Artifacts & Work Products
-- ⚪ Mobile-first operator view
+- ✅ Cloud / Sandbox agents (e2b, Cloudflare, Daytona, Modal, Novita, self-hosted Kubernetes)
+- ✅ Artifacts & Work Products
+- ✅ Deep Planning (planning mode, revisioned plans, plan approvals)
+- ✅ Enforced Outcomes (watchdogs, recovery actions, review gates)
+- ✅ MCP Tool Gateway & Apps (governed tool access)
+- ✅ Secrets Manager with per-agent access
+- ✅ Activity log & action attribution
+- ✅ Self-healing runs & automatic recovery
+- ✅ Agent evals & feedback
 - ⚪ Memory / Knowledge
-- ⚪ Enforced Outcomes
 - ⚪ MAXIMIZER MODE
-- ⚪ Deep Planning
 - ⚪ Work Queues
 - ⚪ Self-Organization
 - ⚪ Automatic Organizational Learning
 - ⚪ CEO Chat
-- ⚪ Cloud deployments
+- 🟡 Cloud deployments (multi-tenant isolation & company Import/Export shipped)
 - ⚪ Desktop App
+- ⚪ Bring-your-own-ticket-system (Asana / Linear / Jira as on-ramps)
+- ⚪ Connected Apps (one-click integrations, e.g. Vercel)
 
 This is the short roadmap preview. See the full roadmap in [ROADMAP.md](ROADMAP.md).
 
 <br/>
 
+## Community & Plugins
+
+Find Plugins and more at [awesome-paperclip](https://github.com/gsxdsm/awesome-paperclip)
+
+## Observability
+
+ATV-Teams ships with opt-in OpenTelemetry auto-instrumentation for the server (traces only). It activates when `OTEL_EXPORTER_OTLP_ENDPOINT` is set and supports `grpc`, `http/protobuf`, and `http/json` via the standard `OTEL_EXPORTER_OTLP_PROTOCOL` env var. The `@opentelemetry/*` packages are optional peer dependencies — install them only if you want tracing. See [doc/observability.md](doc/observability.md) for install commands and the full env-var reference.
+
 ## Telemetry
 
 ATV-Teams inherits the upstream ATV-Teams anonymous usage telemetry to help understand how the product is used and improve it. No personal information, issue content, prompts, file paths, or secrets are ever collected. Private repository references are hashed with a per-install salt before being sent.
+
+Contributors changing emitted telemetry events should follow the [Telemetry Data Contract](packages/shared/src/telemetry/README.md).
+For proposed first-party events that are not in the generated contract yet, follow [Telemetry Workflow](doc/TELEMETRY_WORKFLOW.md).
 
 Telemetry is **enabled by default** and can be disabled with any of the following:
 
@@ -400,7 +460,7 @@ We welcome contributions. See the [contributing guide](CONTRIBUTING.md) for deta
 
 ## Acknowledgements
 
-ATV-Teams is built on the open-source [Paperclip](https://github.com/paperclipai/paperclip) control plane. Internal package names (`@paperclipai/*`), the `paperclipai` CLI binary, and the `~/.paperclip/` config directory are preserved for compatibility with the upstream install path.
+ATV-Teams is built on the open-source [ATV-Teams](https://github.com/shyamsridhar123/ATV-Teams) control plane. Internal package names (`@paperclipai/*`), the `paperclipai` CLI binary, and the `~/.paperclip/` config directory are preserved for compatibility with the upstream install path.
 
 ## License
 

@@ -118,7 +118,7 @@ async function createSkillDir(root: string, name: string) {
 
 describe("cursor execute", () => {
   it("injects paperclip env vars and prompt note by default", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-execute-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "atv-cursor-execute-"));
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "agent");
     const capturePath = path.join(root, "capture.json");
@@ -193,7 +193,7 @@ describe("cursor execute", () => {
   });
 
   it("passes --mode when explicitly configured", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-execute-mode-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "atv-cursor-execute-mode-"));
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "agent");
     const capturePath = path.join(root, "capture.json");
@@ -251,7 +251,7 @@ describe("cursor execute", () => {
   });
 
   it("injects company-library runtime skills into the Cursor skills home before execution", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-execute-runtime-skill-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "atv-cursor-execute-runtime-skill-"));
     const workspace = path.join(root, "workspace");
     const commandPath = path.join(root, "agent");
     const runtimeSkillsRoot = path.join(root, "runtime-skills");
@@ -288,8 +288,6 @@ describe("cursor execute", () => {
             {
               name: "paperclip",
               source: paperclipDir,
-              required: true,
-              requiredReason: "Bundled ATV-Teams skills are always available for local adapters.",
             },
             {
               name: "ascii-heart",
@@ -324,7 +322,7 @@ describe("cursor execute", () => {
   });
 
   it("prefers ~/.local/bin/cursor-agent for remote sandbox execution when using the default command", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-sandbox-execute-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "atv-cursor-sandbox-execute-"));
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
@@ -388,7 +386,7 @@ describe("cursor execute", () => {
   }, 10_000);
 
   it("keeps explicit command overrides for remote sandbox execution", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-sandbox-explicit-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "atv-cursor-sandbox-explicit-"));
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
     const remoteWorkspace = path.join(root, "remote-workspace");
