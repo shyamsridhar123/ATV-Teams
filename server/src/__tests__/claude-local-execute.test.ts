@@ -11,6 +11,15 @@ import {
   resetClaudeCliCapabilitiesCacheForTests,
 } from "@paperclipai/adapter-claude-local/server";
 
+/**
+ * Normalize a filesystem path to forward slashes so path assertions read the
+ * same on Windows and Unix. The adapter correctly emits native separators, so
+ * the assertion is what needs normalizing, not the product code.
+ */
+function toPosixPath(value: string | null | undefined): string {
+  return (value ?? "").replace(/\\/g, "/");
+}
+
 async function writeFailingClaudeCommand(
   commandPath: string,
   options: { resultEvent: Record<string, unknown>; exitCode?: number },
@@ -396,7 +405,7 @@ describe("claude execute", () => {
       expect(zero.argv).not.toContain("--strict-mcp-config");
       expect(zero.mcpConfigPath).toBeNull();
       expect(zero.mcpConfigContents).toBeNull();
-      expect(alpha.mcpConfigPath).toContain("/agents/agent-alpha/");
+      expect(toPosixPath(alpha.mcpConfigPath)).toContain("/agents/agent-alpha/");
     } finally {
       restore();
       await fs.rm(root, { recursive: true, force: true });

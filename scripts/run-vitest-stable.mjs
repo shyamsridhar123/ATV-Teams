@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -254,6 +254,24 @@ function selectSerializedSuites(routeTests, shardIndex, shardCount) {
   return routeTests.filter((_, index) => index % shardCount === shardIndex);
 }
 
+/**
+ * Locate Git for Windows' `usr\bin`, which carries sh.exe and the other POSIX
+ * tools the sandbox fixtures shell out to. Returns null when git is not a
+ * standard Git-for-Windows install, in which case the caller leaves PATH alone.
+ */
+function findGitUsrBin(env) {
+  const probe = spawnSync("git", ["--exec-path"], { encoding: "utf8", shell: true, env });
+  if (probe.status !== 0 || typeof probe.stdout !== "string") return null;
+  // --exec-path is like C:/Program Files/Git/mingw64/libexec/git-core
+  const execPath = probe.stdout.trim().replace(/\//g, path.sep);
+  if (!execPath) return null;
+  const marker = `${path.sep}mingw64${path.sep}`;
+  const index = execPath.indexOf(marker);
+  if (index === -1) return null;
+  const candidate = path.join(execPath.slice(0, index), "usr", "bin");
+  return existsSync(path.join(candidate, "sh.exe")) ? candidate : null;
+}
+
 function runVitest(args, label) {
   console.log(`\n[test:run] ${label}`);
   invocationIndex += 1;
@@ -269,6 +287,17 @@ function runVitest(args, label) {
   };
   mkdirSync(env.PAPERCLIP_HOME, { recursive: true });
   mkdirSync(env.TMPDIR, { recursive: true });
+  // Sandbox and runtime-service fixtures spawn `sh`. Windows has no POSIX shell
+  // on PATH by default, but Git for Windows ships one under usr\bin, and git is
+  // already a hard requirement for the worktree suites. Append it rather than
+  // prepend so a developer's own sh wins if they have one.
+  if (process.platform === "win32") {
+    const gitUsrBin = findGitUsrBin(env);
+    if (gitUsrBin) {
+      const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") ?? "PATH";
+      env[pathKey] = `${env[pathKey] ?? ""}${path.delimiter}${gitUsrBin}`;
+    }
+  }
   // Invoke vitest's own bin directly rather than going through the `pnpm` shim.
   // On Windows `pnpm` is a .cmd file, which spawnSync cannot resolve without a
   // shell, and routing through cmd.exe then hits the 8191-character command-line
