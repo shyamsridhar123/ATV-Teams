@@ -269,7 +269,12 @@ function runVitest(args, label) {
   };
   mkdirSync(env.PAPERCLIP_HOME, { recursive: true });
   mkdirSync(env.TMPDIR, { recursive: true });
-  const result = spawnSync("pnpm", ["exec", "vitest", "run", ...args], {
+  // Invoke vitest's own bin directly rather than going through the `pnpm` shim.
+  // On Windows `pnpm` is a .cmd file, which spawnSync cannot resolve without a
+  // shell, and routing through cmd.exe then hits the 8191-character command-line
+  // limit once the general-server lane passes ~270 --exclude args.
+  const vitestBin = path.join(repoRoot, "node_modules", "vitest", "vitest.mjs");
+  const result = spawnSync(process.execPath, [vitestBin, "run", ...args], {
     cwd: repoRoot,
     env,
     stdio: "inherit",

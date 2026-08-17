@@ -218,6 +218,28 @@ Docs use `pnpm paperclipai <command>`, not `npx paperclipai`. The root `package.
 - `upstream` remote: `https://github.com/paperclipai/paperclip.git` (branch `master`).
 - `scripts/upstream-sync-rebrand.mjs` re-applies the rebrand rules above to a file taken from upstream. It guards internal identifiers with sentinels, so run it only on files resolved to upstream's version.
 
+### Running tests on Windows
+
+`pnpm test:run` does not fully pass on Windows, and did not before the 2026-08 upstream sync either. Measured on the same machine, `server/src/__tests__/claude-local-execute.test.ts` failed 15 of 16 tests at the pre-merge commit `5c05cb10` and 22 of 24 after the merge, with the identical error. The extra failures are additional upstream tests hitting the same limitation, not a regression.
+
+Two causes, both from test fixtures written for Linux CI:
+
+1. **Fake CLI binaries.** Adapter execute suites write an extensionless `bin/claude` or `bin/codex` shell script and spawn it. Windows cannot execute a file with no extension and no `#!` handling, so every spawn fails with `Failed to start command`. Affects `claude-local-execute`, `codex-local-execute`, and parts of `workspace-runtime`.
+2. **Symlinks.** Fixtures call `fs.symlink` directly. Windows needs Developer Mode for unelevated symlink creation:
+
+```powershell
+Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' AllowDevelopmentWithoutDevLicense 1
+```
+
+With Developer Mode on, `workspace-runtime.test.ts` goes from failing to load to 48 passing. Without it, DB-backed suites self-skip via `getEmbeddedPostgresTestSupport()` rather than failing.
+
+Two Windows fixes already applied to the runner itself:
+
+- `scripts/ensure-workspace-package-links.ts` falls back to a junction when `fs.symlink` returns `EPERM`.
+- `scripts/run-vitest-stable.mjs` spawns `node node_modules/vitest/vitest.mjs` directly. Going through the `pnpm` shim fails with `ENOENT` (it is a `.cmd`), and using `shell: true` instead hits the 8191-character command-line limit once the general-server lane passes ~270 `--exclude` args.
+
+Treat CI (Linux) as the authority for a full green suite. On Windows, verify with `pnpm -r typecheck`, `pnpm build`, and targeted suites for the area you changed.
+
 ### AWS SDK is optional
 
 `@aws-sdk/client-s3` sits in `server/package.json` under `optionalDependencies`, not `dependencies`. The fork defaults to local disk storage and does not use S3 or AWS Secrets Manager, and a required AWS dependency forces the whole SDK tree (dozens of packages) to resolve on every install.
