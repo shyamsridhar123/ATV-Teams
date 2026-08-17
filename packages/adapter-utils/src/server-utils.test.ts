@@ -2529,29 +2529,29 @@ describe("refreshPaperclipWorkspaceEnvForExecution", () => {
         { workspaceId: "workspace-2", cwd: "/tmp/other" },
       ],
       executionTargetIsRemote: true,
-      executionCwd: "/remote/workspace/.atv-runtime/runs/run-1/workspace",
+      executionCwd: "/remote/workspace/.paperclip-runtime/runs/run-1/workspace",
     });
 
     expect(shaped).toEqual({
-      workspaceCwd: "/remote/workspace/.atv-runtime/runs/run-1/workspace",
+      workspaceCwd: "/remote/workspace/.paperclip-runtime/runs/run-1/workspace",
       workspaceWorktreePath: null,
       workspaceHints: [
         {
           workspaceId: "workspace-1",
-          cwd: "/remote/workspace/.atv-runtime/runs/run-1/workspace",
+          cwd: "/remote/workspace/.paperclip-runtime/runs/run-1/workspace",
         },
         {
           workspaceId: "workspace-2",
         },
       ],
     });
-    expect(env.PAPERCLIP_WORKSPACE_CWD).toBe("/remote/workspace/.atv-runtime/runs/run-1/workspace");
+    expect(env.PAPERCLIP_WORKSPACE_CWD).toBe("/remote/workspace/.paperclip-runtime/runs/run-1/workspace");
     expect(env.PAPERCLIP_WORKSPACE_WORKTREE_PATH).toBeUndefined();
-    expect(env.QA_PROJECT_WORKSPACE_CWD).toBe("/remote/workspace/.atv-runtime/runs/run-1/workspace");
+    expect(env.QA_PROJECT_WORKSPACE_CWD).toBe("/remote/workspace/.paperclip-runtime/runs/run-1/workspace");
     expect(JSON.parse(env.PAPERCLIP_WORKSPACES_JSON ?? "[]")).toEqual([
       {
         workspaceId: "workspace-1",
-        cwd: "/remote/workspace/.atv-runtime/runs/run-1/workspace",
+        cwd: "/remote/workspace/.paperclip-runtime/runs/run-1/workspace",
       },
       {
         workspaceId: "workspace-2",
