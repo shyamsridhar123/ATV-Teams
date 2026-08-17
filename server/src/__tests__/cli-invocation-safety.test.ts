@@ -88,6 +88,15 @@ const PNPM_ALLOWLIST = new Set<string>([
   "pnpm paperclipai worktree repair",
   "pnpm paperclipai worktree env",
   "pnpm paperclipai worktree env --json",
+
+  // Fork-specific: commands documented in doc/DEVELOPING.md. This fork runs the
+  // CLI from the repo via the root `paperclipai` package script rather than the
+  // published package, so its docs use the `pnpm` form where upstream uses
+  // `npx`. Only fixed-argument commands belong here. A command carrying a
+  // caller-supplied value (path, ref, id, name, or any value-bearing flag) stays
+  // off the allowlist on purpose so the guard keeps flagging it; the docs use
+  // the `paperclipai` alias for those instead.
+  "pnpm paperclipai allowed-hostname host.docker.internal",
 ]);
 
 // ── Documentation phrases ─────────────────────────────────────────────────

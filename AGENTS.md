@@ -200,7 +200,7 @@ This is the `shyamsridhar123/ATV-Teams` repository. The product is presented to 
 
 ### Running the CLI
 
-Docs use `pnpm paperclipai <command>`, not `npx paperclipai`. The root `package.json` defines a `paperclipai` script that runs the CLI from this repo; `npx` would fetch the published upstream package instead.
+Docs use the `pnpm paperclipai` form, not `npx paperclipai`. The root `package.json` defines a `paperclipai` script that runs the CLI from this repo; `npx` would fetch the published upstream package instead. Commands that carry a caller-supplied path, ref, id, name, or any value-bearing flag use the `paperclipai` alias defined in `doc/DEVELOPING.md` instead, so the `cli-invocation-safety` guard keeps flagging pasted arguments.
 
 ### Repo identity
 

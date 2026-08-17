@@ -147,7 +147,7 @@ pnpm paperclipai run
 Choose local instance:
 
 ```sh
-pnpm paperclipai run --instance dev
+paperclipai run --instance dev
 ```
 
 ## Install, Update, And Uninstall

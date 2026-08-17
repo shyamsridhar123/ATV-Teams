@@ -15,6 +15,23 @@ Current implementation status:
 - Node.js 20+
 - pnpm 9+
 
+## Running the CLI
+
+This fork is not published to npm, so `npx paperclipai` would fetch the upstream
+package instead of this repo. Run the CLI through the root package script:
+
+```sh
+pnpm paperclipai --help
+```
+
+Commands below that take a path, ref, id, or name are shown with a `paperclipai`
+alias rather than the `pnpm` form. Define it once per shell so the examples stay
+copy-safe and short:
+
+```sh
+alias paperclipai='node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts'
+```
+
 ## Dependency Lockfile Policy
 
 GitHub Actions owns `pnpm-lock.yaml`.
@@ -230,7 +247,7 @@ pnpm dev --authenticated-private
 Allow additional private hostnames (for example custom Tailscale hostnames):
 
 ```sh
-pnpm paperclipai allowed-hostname dotta-macbook-pro
+paperclipai allowed-hostname dotta-macbook-pro
 ```
 
 ## Test Commands
@@ -434,7 +451,7 @@ Instead, create a repo-local ATV-Teams config plus an isolated instance for the 
 ```sh
 paperclipai worktree init
 # or create the git worktree and initialize it in one step:
-pnpm paperclipai worktree:make atv-pr-432
+paperclipai worktree:make atv-pr-432
 ```
 
 This command:
@@ -507,7 +524,7 @@ eval "$(paperclipai worktree env)"
 
 ### Worktree CLI Reference
 
-**`pnpm paperclipai worktree init [options]`** — Create repo-local config/env and an isolated instance for the current worktree.
+**`paperclipai worktree init [options]`** — Create repo-local config/env and an isolated instance for the current worktree.
 
 | Option | Description |
 |---|---|
@@ -537,7 +554,7 @@ Repair an already-created repo-managed worktree and reseed its isolated instance
 
 ```sh
 cd /path/to/paperclip/.paperclip/worktrees/PAP-884-ai-commits-component
-pnpm paperclipai worktree init --force --seed-mode minimal \
+paperclipai worktree init --force --seed-mode minimal \
   --name PAP-884-ai-commits-component \
   --from-config ~/.paperclip/instances/default/config.json
 ```
@@ -546,7 +563,7 @@ That rewrites the worktree-local `.paperclip/config.json` + `.paperclip/.env`, r
 
 For an already-created worktree where you want the CLI to decide whether to rebuild missing worktree metadata or just reseed the isolated DB, use `worktree repair`.
 
-**`pnpm paperclipai worktree repair [options]`** — Repair the current linked worktree by default, or create/repair a named linked worktree under `.paperclip/worktrees/` when `--branch` is provided. The command never targets the primary checkout unless you explicitly pass `--branch`.
+**`paperclipai worktree repair [options]`** — Repair the current linked worktree by default, or create/repair a named linked worktree under `.paperclip/worktrees/` when `--branch` is provided. The command never targets the primary checkout unless you explicitly pass `--branch`.
 
 | Option | Description |
 |---|---|
@@ -574,7 +591,7 @@ node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts worktree repair --branch
 
 For an already-created worktree where you want to keep the existing repo-local config/env and only overwrite the isolated database, use `worktree reseed` instead. Stop the target worktree's ATV-Teams server first so the command can replace the DB safely.
 
-**`pnpm paperclipai worktree reseed [options]`** — Re-seed an existing worktree-local instance from another ATV-Teams instance or worktree while preserving the target worktree's current config, ports, and instance identity.
+**`paperclipai worktree reseed [options]`** — Re-seed an existing worktree-local instance from another ATV-Teams instance or worktree while preserving the target worktree's current config, ports, and instance identity.
 
 | Option | Description |
 |---|---|
@@ -592,7 +609,7 @@ Examples:
 ```sh
 # From the main repo, reseed a worktree from the current default/master instance.
 cd /path/to/paperclip
-pnpm paperclipai worktree reseed \
+paperclipai worktree reseed \
   --from current \
   --to PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat \
   --seed-mode full \
@@ -600,12 +617,12 @@ pnpm paperclipai worktree reseed \
 
 # From inside a worktree, reseed it from the default instance config.
 cd /path/to/paperclip/.paperclip/worktrees/PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat
-pnpm paperclipai worktree reseed \
+paperclipai worktree reseed \
   --from-instance default \
   --seed-mode full
 ```
 
-**`pnpm paperclipai worktree:make <name> [options]`** — Create `~/NAME` as a git worktree, then initialize an isolated ATV-Teams instance inside it. This combines `git worktree add` with `worktree init` in a single step.
+**`paperclipai worktree:make <name> [options]`** — Create `~/NAME` as a git worktree, then initialize an isolated ATV-Teams instance inside it. This combines `git worktree add` with `worktree init` in a single step.
 
 | Option | Description |
 |---|---|
@@ -624,12 +641,12 @@ pnpm paperclipai worktree reseed \
 Examples:
 
 ```sh
-pnpm paperclipai worktree:make atv-pr-432
-pnpm paperclipai worktree:make my-feature --start-point origin/main
-pnpm paperclipai worktree:make experiment --no-seed
+paperclipai worktree:make atv-pr-432
+paperclipai worktree:make my-feature --start-point origin/main
+paperclipai worktree:make experiment --no-seed
 ```
 
-**`pnpm paperclipai worktree env [options]`** — Print shell exports for the current worktree-local ATV-Teams instance.
+**`paperclipai worktree env [options]`** — Print shell exports for the current worktree-local ATV-Teams instance.
 
 | Option | Description |
 |---|---|
@@ -641,7 +658,7 @@ Examples:
 ```sh
 pnpm paperclipai worktree env
 pnpm paperclipai worktree env --json
-eval "$(pnpm paperclipai worktree env)"
+eval "$(paperclipai worktree env)"
 ```
 
 For project execution worktrees, ATV-Teams can also run a project-defined provision command after it creates or reuses an isolated git worktree. Configure this on the project's execution workspace policy (`workspaceStrategy.provisionCommand`). The command runs inside the derived worktree and receives `PAPERCLIP_WORKSPACE_*`, `PAPERCLIP_PROJECT_ID`, `PAPERCLIP_AGENT_ID`, and `PAPERCLIP_ISSUE_*` environment variables so each repo can bootstrap itself however it wants.
@@ -870,15 +887,15 @@ ATV-Teams CLI now includes client-side control-plane commands in addition to set
 Quick examples:
 
 ```sh
-pnpm paperclipai issue list --company-id <company-id>
-pnpm paperclipai issue create --company-id <company-id> --title "Investigate checkout conflict"
-pnpm paperclipai issue update <issue-id> --status in_progress --comment "Started triage"
+paperclipai issue list --company-id <company-id>
+paperclipai issue create --company-id <company-id> --title "Investigate checkout conflict"
+paperclipai issue update <issue-id> --status in_progress --comment "Started triage"
 ```
 
 Set defaults once with context profiles:
 
 ```sh
-pnpm paperclipai context set --api-base http://localhost:3100 --company-id <company-id>
+paperclipai context set --api-base http://localhost:3100 --company-id <company-id>
 ```
 
 Then run commands without repeating flags:

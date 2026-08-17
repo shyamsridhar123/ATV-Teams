@@ -282,9 +282,9 @@ pnpm paperclipai onboard --yes
 That quickstart path now defaults to trusted local loopback mode for the fastest first run. To start in authenticated/private mode instead, choose a bind preset explicitly:
 
 ```bash
-pnpm paperclipai onboard --yes --bind lan
+paperclipai onboard --yes --bind lan
 # or:
-pnpm paperclipai onboard --yes --bind tailnet
+paperclipai onboard --yes --bind tailnet
 ```
 
 If you already have ATV-Teams configured, rerunning `onboard` keeps the existing config in place. Use `paperclipai configure` to edit settings.
