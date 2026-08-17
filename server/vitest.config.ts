@@ -12,6 +12,12 @@ export default defineConfig({
     // mirrors it for the same reason.
     hookTimeout: 30000,
     teardownTimeout: 30000,
+    // A few suites do real filesystem work rather than pure assertions: the
+    // cli-invocation-safety guard walks every documentation and source file in
+    // the repo, and the worktree suites shell out to git. Those exceed vitest's
+    // 5s default on a loaded machine or a slower filesystem while still being
+    // healthy. 30s matches the hook headroom above and still catches a hang.
+    testTimeout: 30000,
     isolate: true,
     maxConcurrency: 1,
     maxWorkers: 1,
