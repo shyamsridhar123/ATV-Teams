@@ -2500,7 +2500,58 @@ async function resolveSpawnTarget(
     };
   }
 
+  // Windows has no shebang support, so an extensionless script with a `#!` line
+  // fails to spawn with ENOENT even though it runs fine on Unix. Read the
+  // interpreter out of the shebang and invoke it explicitly. This lets adapter
+  // commands that ship as shebang wrappers work on Windows.
+  const shebang = await readShebangInterpreter(executable);
+  if (shebang) {
+    const interpreter = await resolveCommandPath(shebang.interpreter, cwd, env);
+    if (interpreter) {
+      return {
+        command: interpreter,
+        args: [...shebang.args, executable, ...args],
+      };
+    }
+  }
+
   return { command: executable, args };
+}
+
+/**
+ * Read a `#!` line from `filePath` and return the interpreter it names.
+ *
+ * Handles the `#!/usr/bin/env node` form by dropping the `env` indirection,
+ * since resolving `node` through PATH is what `env` would do anyway. Returns
+ * null when the file is missing, binary, or has no shebang.
+ */
+async function readShebangInterpreter(
+  filePath: string,
+): Promise<{ interpreter: string; args: string[] } | null> {
+  let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
+  try {
+    handle = await fs.open(filePath, "r");
+    const { buffer, bytesRead } = await handle.read(Buffer.alloc(256), 0, 256, 0);
+    if (bytesRead < 2 || buffer[0] !== 0x23 || buffer[1] !== 0x21) return null;
+
+    const firstLine = buffer.subarray(2, bytesRead).toString("utf8").split(/\r?\n/, 1)[0]?.trim();
+    if (!firstLine) return null;
+
+    const parts = firstLine.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return null;
+
+    // `#!/usr/bin/env node --flag` -> interpreter "node", args ["--flag"]
+    const head = parts[0]!;
+    if (/(^|[\\/])env$/.test(head) && parts.length > 1) {
+      return { interpreter: parts[1]!, args: parts.slice(2) };
+    }
+    // `#!/usr/bin/node --flag` -> interpreter "node" (basename resolves on PATH)
+    return { interpreter: path.basename(head), args: parts.slice(1) };
+  } catch {
+    return null;
+  } finally {
+    await handle?.close().catch(() => {});
+  }
 }
 
 export function ensurePathInEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
