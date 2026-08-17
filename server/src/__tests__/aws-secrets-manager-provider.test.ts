@@ -460,7 +460,7 @@ describe("awsSecretsManagerProvider", () => {
     expect(prepared.material.source).toBe("external_reference");
   });
 
-  it("rejects external value writes under the Paperclip-managed namespace", async () => {
+  it("rejects external value writes under the ATV-Teams-managed namespace", async () => {
     const provider = createAwsSecretsManagerProvider({
       config: {
         region: "us-east-1",
@@ -480,7 +480,7 @@ describe("awsSecretsManagerProvider", () => {
           "arn:aws:secretsmanager:us-east-1:123456789012:secret:paperclip/prod-use1/company-2/openai-api-key",
         value: "new-value",
       }),
-    ).rejects.toThrow(/Paperclip-managed namespace/i);
+    ).rejects.toThrow(/ATV-Teams-managed namespace/i);
   });
 
   it("restores the previous AWSCURRENT version when an external value write is rolled back", async () => {
