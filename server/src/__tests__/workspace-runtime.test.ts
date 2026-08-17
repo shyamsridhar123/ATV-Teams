@@ -1921,7 +1921,7 @@ describe("realizeExecutionWorkspace", () => {
         },
       });
 
-      expect(result.stderr).toContain("Existing isolated Paperclip worktree config is stale for this host; regenerating.");
+      expect(result.stderr).toContain("Existing isolated ATV-Teams worktree config is stale for this host; regenerating.");
       await expect(fs.readFile(path.join(paperclipDir, ".env"), "utf8")).resolves.toContain(
         `PAPERCLIP_CONFIG=${worktreeRoot}/.paperclip/config.json`,
       );
