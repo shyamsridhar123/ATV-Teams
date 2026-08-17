@@ -3275,12 +3275,12 @@ export function accessRoutes(
           path: "/api/skills/para-memory-files"
         },
         {
-          name: "atv-create-agent",
-          path: "/api/skills/atv-create-agent"
+          name: "paperclip-create-agent",
+          path: "/api/skills/paperclip-create-agent"
         },
         {
-          name: "atv-converting-plans-to-tasks",
-          path: "/api/skills/atv-converting-plans-to-tasks"
+          name: "paperclip-converting-plans-to-tasks",
+          path: "/api/skills/paperclip-converting-plans-to-tasks"
         }
       ]
     });

@@ -307,7 +307,7 @@ function assertImportedSkillKeyAllowed(skill: ImportedSkill) {
   const sourceKind = asString(metadata?.sourceKind);
   if (sourceKind === "paperclip_bundled") return;
   throw unprocessable(
-    `Reserved ATV-Teams skill key "${skill.key}" cannot be imported from unbundled sources.`,
+    `Reserved Paperclip skill key "${skill.key}" cannot be imported from unbundled sources.`,
     {
       skillKey: skill.key,
       sourceKind: sourceKind ?? skill.sourceType,
@@ -1275,9 +1275,9 @@ function paperclipBundledFolderCategory(key: string, metadata?: unknown) {
   if (keyParts[0] === "paperclipai" && keyParts[1] === "bundled" && keyParts[2]) {
     return keyParts[2];
   }
-  if (isPaperclipBundledSkillKey(key)) return "atv-core";
+  if (isPaperclipBundledSkillKey(key)) return "paperclip-core";
   if (isPlainRecord(metadata) && asString(metadata.sourceKind) === "paperclip_bundled") {
-    return "atv-core";
+    return "paperclip-core";
   }
   return null;
 }
