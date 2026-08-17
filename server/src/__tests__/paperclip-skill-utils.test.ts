@@ -26,9 +26,9 @@ describe("paperclip skill utils", () => {
     const moduleDir = path.join(root, "a", "b", "c", "d", "e");
     await fs.mkdir(moduleDir, { recursive: true });
     await fs.mkdir(path.join(root, "skills", "paperclip"), { recursive: true });
-    await fs.mkdir(path.join(root, "skills", "atv-create-agent"), { recursive: true });
+    await fs.mkdir(path.join(root, "skills", "paperclip-create-agent"), { recursive: true });
     await fs.mkdir(path.join(root, ".agents", "skills", "diagnose-why-work-stopped"), { recursive: true });
-    await fs.mkdir(path.join(root, ".agents", "skills", "atv-create-plugin"), { recursive: true });
+    await fs.mkdir(path.join(root, ".agents", "skills", "paperclip-create-plugin"), { recursive: true });
     await fs.mkdir(path.join(root, ".agents", "skills", "release"), { recursive: true });
     await fs.mkdir(path.join(root, ".agents", "skills", "terminal-bench-loop"), { recursive: true });
 
@@ -36,14 +36,14 @@ describe("paperclip skill utils", () => {
 
     expect(entries.map((entry) => entry.key)).toEqual([
       "paperclipai/paperclip/paperclip",
-      "paperclipai/paperclip/atv-create-agent",
+      "paperclipai/paperclip/paperclip-create-agent",
     ]);
     expect(entries.map((entry) => entry.runtimeName)).toEqual([
       "paperclip",
-      "atv-create-agent",
+      "paperclip-create-agent",
     ]);
     expect(entries[0]?.source).toBe(path.join(root, "skills", "paperclip"));
-    expect(entries[1]?.source).toBe(path.join(root, "skills", "atv-create-agent"));
+    expect(entries[1]?.source).toBe(path.join(root, "skills", "paperclip-create-agent"));
   });
 
   it("documents artifact uploads in the installed ATV-Teams skill", async () => {
@@ -54,14 +54,14 @@ describe("paperclip skill utils", () => {
     expect(skillBody).toContain("references/artifacts.md");
     expect(skillBody).not.toContain("/api/companies/$PAPERCLIP_COMPANY_ID/issues/$PAPERCLIP_TASK_ID/attachments");
     expect(referenceBody).toContain("Generated Artifacts and Work Products");
-    expect(referenceBody).toContain("scripts/atv-upload-artifact.sh");
+    expect(referenceBody).toContain("scripts/paperclip-upload-artifact.sh");
     expect(referenceBody).toContain("POST");
     expect(referenceBody).toContain("/api/companies/$PAPERCLIP_COMPANY_ID/issues/$PAPERCLIP_TASK_ID/attachments");
     expect(referenceBody).toContain("/api/issues/$PAPERCLIP_TASK_ID/work-products");
     await expect(
-      fs.access(path.resolve("skills/paperclip/scripts/atv-upload-artifact.sh")),
+      fs.access(path.resolve("skills/paperclip/scripts/paperclip-upload-artifact.sh")),
     ).resolves.toBeUndefined();
-    await expect(fs.access(path.resolve("scripts/atv-upload-artifact.sh"))).rejects.toThrow();
+    await expect(fs.access(path.resolve("scripts/paperclip-upload-artifact.sh"))).rejects.toThrow();
   });
 
   it("documents governed agent interaction resolution invariants", async () => {
