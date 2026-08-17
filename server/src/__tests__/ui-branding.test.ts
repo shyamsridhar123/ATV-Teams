@@ -60,9 +60,9 @@ describe("ui branding", () => {
         PAPERCLIP_WORKTREE_COLOR: "#4f86f7",
       }),
     );
-    expect(meta).toContain('name="atv-teams-worktree-name"');
+    expect(meta).toContain('name="paperclip-worktree-name"');
     expect(meta).toContain('content="paperclip-pr-432"');
-    expect(meta).toContain('name="atv-teams-worktree-color"');
+    expect(meta).toContain('name="paperclip-worktree-color"');
   });
 
   it("surfaces the runtime instance id so the UI can fail closed on copied rows", () => {
@@ -96,11 +96,11 @@ describe("ui branding", () => {
       PAPERCLIP_WORKTREE_COLOR: "#4f86f7",
     });
     expect(branded).toContain("data:image/svg+xml,");
-    expect(branded).toContain('name="atv-teams-worktree-name"');
+    expect(branded).toContain('name="paperclip-worktree-name"');
     expect(branded).not.toContain('href="/favicon.svg"');
 
     const defaultHtml = applyUiBranding(TEMPLATE, {});
     expect(defaultHtml).toContain('href="/favicon.svg"');
-    expect(defaultHtml).not.toContain('name="atv-teams-worktree-name"');
+    expect(defaultHtml).not.toContain('name="paperclip-worktree-name"');
   });
 });
