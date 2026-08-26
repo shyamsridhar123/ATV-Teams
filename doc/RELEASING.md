@@ -4,7 +4,9 @@ Maintainer runbook for shipping ATV-Teams across npm, GitHub, and the website-fa
 
 The release model is now commit-driven:
 
-1. Every push to `master` publishes a canary automatically.
+1. Every push to upstream `paperclipai/paperclip` publishes a canary automatically.
+   This fork publishes canaries only when the repository variable
+   `ENABLE_NPM_CANARY_PUBLISH` is set to `true`.
 2. Once a night, the newest master commit with a green canary publish is
    smoke-tested and republished as the nightly.
 3. Betas are manual, human-approved promotions of a chosen nightly.
@@ -81,7 +83,10 @@ internal traceability tag.
 
 ### Canary
 
-Every push to `master` runs the canary path inside [`.github/workflows/release.yml`](../.github/workflows/release.yml).
+Every push to `master` runs canary verification inside
+[`.github/workflows/release.yml`](../.github/workflows/release.yml). Publishing
+is automatic in upstream. This fork requires
+`ENABLE_NPM_CANARY_PUBLISH=true`.
 
 It:
 
@@ -192,7 +197,7 @@ was cut from.
 
 Use [`.github/workflows/release.yml`](../.github/workflows/release.yml) from the Actions tab with the manual `workflow_dispatch` inputs.
 
-[Run the action here](https://github.com/paperclipai/paperclip/actions/workflows/release.yml)
+[Run the action here](https://github.com/shyamsridhar123/ATV-Teams/actions/workflows/release.yml)
 
 Inputs:
 

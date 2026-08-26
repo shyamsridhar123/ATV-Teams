@@ -10,6 +10,10 @@ const manifestPath = join(repoRoot, "scripts", "release-package-manifest.json");
 const roots = ["packages", "server", "ui", "cli"];
 const CHANNEL_ENTRYPOINT_PACKAGE = "paperclipai";
 
+function toPosixPath(value) {
+  return value.split("\\").join("/");
+}
+
 function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
@@ -26,7 +30,7 @@ function discoverPublicPackages() {
       const pkg = readJson(pkgPath);
       if (!pkg.private) {
         packages.push({
-          dir: relDir,
+          dir: toPosixPath(relDir),
           pkgPath,
           name: pkg.name,
           version: pkg.version,

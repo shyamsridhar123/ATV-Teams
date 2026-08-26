@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - "sync/upstream-*"
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
@@ -25,6 +26,7 @@ jobs:
       - name: Block manual lockfile edits
         if: >-
           github.head_ref != 'chore/refresh-lockfile' &&
+          !startsWith(github.head_ref, 'sync/upstream-') &&
           github.event.pull_request.user.login != 'dependabot[bot]'
         run: |
           # Diff the PR branch against its merge base so recent base-branch commits

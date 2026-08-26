@@ -2,7 +2,6 @@
   "name": "@paperclipai/adapter-copilot-local",
   "version": "0.0.1",
   "license": "MIT",
-  "private": true,
   "homepage": "https://github.com/shyamsridhar123/ATV-Teams",
   "bugs": {
     "url": "https://github.com/shyamsridhar123/ATV-Teams/issues"

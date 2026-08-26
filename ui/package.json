@@ -3,13 +3,13 @@
   "version": "0.3.1",
   "description": "Prebuilt ATV-Teams board UI assets.",
   "license": "MIT",
-  "homepage": "https://github.com/paperclipai/paperclip",
+  "homepage": "https://github.com/shyamsridhar123/ATV-Teams",
   "bugs": {
-    "url": "https://github.com/paperclipai/paperclip/issues"
+    "url": "https://github.com/shyamsridhar123/ATV-Teams/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/paperclipai/paperclip",
+    "url": "https://github.com/shyamsridhar123/ATV-Teams",
     "directory": "ui"
   },
   "type": "module",
