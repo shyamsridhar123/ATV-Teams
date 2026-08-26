@@ -693,7 +693,7 @@ describe("IssueChatThread system notice routing", () => {
       authorUserId: null,
       runId: "run-source",
       runAgentId: "agent-codex",
-      body: "Paperclip needs a disposition before this issue can continue.",
+      body: "ATV-Teams needs a disposition before this issue can continue.",
       presentation: {
         kind: "system_notice",
         tone: "warning",
@@ -725,7 +725,7 @@ describe("IssueChatThread system notice routing", () => {
 
     const row = container.querySelector('[data-testid="stale-disposition-warning"]');
     expect(row).not.toBeNull();
-    expect(row?.textContent).not.toContain("Paperclip needs a disposition before this issue can continue.");
+    expect(row?.textContent).not.toContain("ATV-Teams needs a disposition before this issue can continue.");
   });
 
   it("keeps the required disposition warning loud when no live continuation exists", () => {
@@ -738,7 +738,7 @@ describe("IssueChatThread system notice routing", () => {
       authorUserId: null,
       runId: "run-source",
       runAgentId: "agent-codex",
-      body: "Paperclip needs a disposition before this issue can continue.",
+      body: "ATV-Teams needs a disposition before this issue can continue.",
       presentation: {
         kind: "system_notice",
         tone: "warning",
@@ -768,7 +768,7 @@ describe("IssueChatThread system notice routing", () => {
     });
 
     expect(container.querySelector('[data-testid="stale-disposition-warning"]')).toBeNull();
-    expect(container.textContent).toContain("Paperclip needs a disposition before this issue can continue.");
+    expect(container.textContent).toContain("ATV-Teams needs a disposition before this issue can continue.");
   });
 
   it("folds a required disposition warning when a live run starts after the issue payload was fetched", () => {
@@ -781,7 +781,7 @@ describe("IssueChatThread system notice routing", () => {
       authorUserId: null,
       runId: "run-source",
       runAgentId: "agent-codex",
-      body: "Paperclip needs a disposition before this issue can continue.",
+      body: "ATV-Teams needs a disposition before this issue can continue.",
       presentation: {
         kind: "system_notice",
         tone: "warning",
@@ -828,6 +828,6 @@ describe("IssueChatThread system notice routing", () => {
 
     const row = container.querySelector('[data-testid="stale-disposition-warning"]');
     expect(row).not.toBeNull();
-    expect(row?.textContent).not.toContain("Paperclip needs a disposition before this issue can continue.");
+    expect(row?.textContent).not.toContain("ATV-Teams needs a disposition before this issue can continue.");
   });
 });

@@ -270,7 +270,7 @@ export function PipelineItemBodyDocument({
     [conversationIssueId, doc?.latestRevisionId, latestBody, onStartConversation, pushToast, saveMutation],
   );
 
-  const bodyContentClassName = "paperclip-edit-in-place-content min-h-(--sz-220px) text-sm leading-7";
+  const bodyContentClassName = "atv-edit-in-place-content min-h-(--sz-220px) text-sm leading-7";
 
   const renderReadOnlyBody = (body: string) => (
     <FoldCurtain className="max-w-3xl">

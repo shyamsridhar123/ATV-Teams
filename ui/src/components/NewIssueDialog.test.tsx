@@ -1353,7 +1353,7 @@ describe("NewIssueDialog", () => {
       enableTaskWatchdogs: true,
     });
     localStorage.setItem(
-      "paperclip:issue-draft",
+      "atv-teams:issue-draft",
       JSON.stringify({
         title: "Watched task",
         description: "",

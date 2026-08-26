@@ -14,6 +14,7 @@ vi.mock("../services/agents.js", () => ({
 
 vi.mock("../adapters/index.js", () => ({
   listServerAdapters: mockListServerAdapters,
+  listAdapterModelProfiles: vi.fn(async () => []),
 }));
 
 function registerModuleMocks() {
@@ -23,6 +24,7 @@ function registerModuleMocks() {
 
   vi.doMock("../adapters/index.js", () => ({
     listServerAdapters: mockListServerAdapters,
+    listAdapterModelProfiles: vi.fn(async () => []),
   }));
 }
 

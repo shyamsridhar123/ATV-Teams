@@ -409,7 +409,7 @@ describe("IssueChatThread", () => {
 
     expect(markdownBodyRenderMock).toHaveBeenCalledWith(expect.objectContaining({
       children: "1. **Readable** markdown on blue",
-      className: expect.stringContaining("paperclip-markdown-on-accent"),
+      className: expect.stringContaining("atv-markdown-on-accent"),
     }));
 
     act(() => {
