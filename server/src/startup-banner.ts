@@ -93,7 +93,7 @@ function resolveAgentJwtSecretStatus(
 
   return {
     status: "warn",
-    message: "missing (run `npx paperclipai onboard`)",
+    message: "missing (run `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts onboard`)",
   };
 }
 

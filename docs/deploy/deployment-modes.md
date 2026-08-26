@@ -42,7 +42,7 @@ pnpm paperclipai onboard
 Allow custom Tailscale hostnames:
 
 ```sh
-npx paperclipai allowed-hostname my-machine
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname my-machine
 ```
 
 ### `authenticated` + `public`

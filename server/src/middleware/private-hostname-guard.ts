@@ -51,7 +51,7 @@ export function resolvePrivateHostnameAllowSet(opts: { allowedHostnames: string[
 // value. The operator supplies the real hostname.
 const BLOCKED_HOSTNAME_MESSAGE =
   "This hostname is not allowed for this ATV-Teams instance. " +
-  "If you want to allow a hostname, run npx paperclipai allowed-hostname <host>.";
+  "If you want to allow a hostname, run node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname <host>.";
 
 export function privateHostnameGuard(opts: {
   enabled: boolean;
@@ -72,7 +72,7 @@ export function privateHostnameGuard(opts: {
     const wantsJson = req.path.startsWith("/api") || req.accepts(["json", "html", "text"]) === "json";
 
     if (!hostname) {
-      const error = "Missing Host header. If you want to allow a hostname, run npx paperclipai allowed-hostname <host>.";
+      const error = "Missing Host header. If you want to allow a hostname, run node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname <host>.";
       if (wantsJson) {
         res.status(403).json({ error });
       } else {

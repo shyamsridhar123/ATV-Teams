@@ -484,7 +484,7 @@ function generateReadmeFromSelection(
   lines.push("## Getting Started");
   lines.push("");
   lines.push("```bash");
-  lines.push("npx paperclipai company import this-github-url-or-folder");
+  lines.push("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company import this-github-url-or-folder");
   lines.push("```");
   lines.push("");
   lines.push("See [ATV-Teams](https://github.com/shyamsridhar123/ATV-Teams) for more information.");

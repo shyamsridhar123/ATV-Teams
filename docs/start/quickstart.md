@@ -8,7 +8,7 @@ Get ATV-Teams running locally in under 5 minutes.
 ## Quick Start (Recommended)
 
 ```sh
-npx paperclipai onboard --yes
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts onboard --yes
 ```
 
 This walks you through setup, configures your environment, and gets ATV-Teams running.
@@ -18,10 +18,10 @@ If you already have a ATV-Teams install, rerunning `onboard` keeps your current 
 To start ATV-Teams again later:
 
 ```sh
-npx paperclipai run
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run
 ```
 
-> **Note:** If you used `npx` for setup, always use `npx paperclipai` to run commands. The `pnpm paperclipai` form only works inside a cloned copy of the ATV-Teams repository (see Local Development below).
+> **Note:** If you used `npx` for setup, always use `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts` to run commands. The `pnpm paperclipai` form only works inside a cloned copy of the ATV-Teams repository (see Local Development below).
 
 ## Local Development
 

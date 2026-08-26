@@ -41,7 +41,7 @@ Wait for `Server listening on 127.0.0.1:3100`.
 ### 3. Install the plugin via the CLI
 
 ```bash
-npx paperclipai plugin install \
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin install \
   --local /path/to/paperclip/packages/plugins/sandbox-providers/kubernetes \
   --api-base http://127.0.0.1:3100
 ```
