@@ -39,21 +39,17 @@ function normalizeEnvConfig(input: unknown): Record<string, string> {
   return out;
 }
 
-function pickToken(env: Record<string, string>, hostEnv: NodeJS.ProcessEnv): string | null {
+export function pickToken(env: Record<string, string>): string | null {
   // Precedence matches the Copilot CLI itself:
   //   COPILOT_GITHUB_TOKEN > GH_TOKEN > GITHUB_TOKEN
-  // Look first in operator-configured adapter env (so a per-agent token
-  // beats the host shell), then fall back to the host process env so
-  // local_trusted operators who have already run `copilot login` on the
-  // host don't need to re-paste a token.
+  // Tokens must come from the resolved adapter environment. The server
+  // resolves company/user secret bindings before adapter execution. Never
+  // inherit GH_TOKEN or GITHUB_TOKEN from the ATV-Teams host process because
+  // that credential can belong to CI or to a different tenant.
   const order = ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"] as const;
   for (const key of order) {
     const fromConfig = env[key]?.trim();
     if (fromConfig) return fromConfig;
-  }
-  for (const key of order) {
-    const fromHost = (hostEnv[key] ?? "").trim();
-    if (fromHost) return fromHost;
   }
   return null;
 }
@@ -155,18 +151,10 @@ function inheritWindowsBaseEnv(hostEnv: NodeJS.ProcessEnv): Record<string, strin
  * -----------------------
  * The Copilot CLI itself reads tokens from (in precedence order)
  * COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN. We mirror that order
- * and accept either:
- *
- *   1. an operator-configured `adapter_config.env.{COPILOT_GITHUB_TOKEN,
- *      GH_TOKEN, GITHUB_TOKEN}` value, or
- *   2. a token already present on the ATV-Teams host process env (the
- *      `local_trusted` deployment path).
- *
- * Full DB-backed retrieval of OAuth device-flow tokens (the
- * `credentialSecretKey` path) is wired through the server registration
- * layer; see `oauth-device-flow.ts` and `token-persistence.ts`. When
- * neither path yields a token we fail fast with a structured
- * `copilot_login_required` error.
+ * and accepts a resolved `adapter_config.env.{COPILOT_GITHUB_TOKEN,
+ * GH_TOKEN, GITHUB_TOKEN}` value. The server resolves company/user secret
+ * bindings before this function runs. When no scoped binding yields a token,
+ * execution fails with `copilot_login_required`.
  *
  * Session resume
  * --------------
@@ -233,12 +221,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
 
   // --- token ---
   const envConfig = normalizeEnvConfig(config.env);
-  const token = pickToken(envConfig, hostEnv);
+  const token = pickToken(envConfig);
   if (!token) {
     const message =
       "GitHub Copilot CLI requires authentication, but no token was found. " +
-      "Either set COPILOT_GITHUB_TOKEN (or GH_TOKEN, GITHUB_TOKEN) in the agent's adapter_config.env, " +
-      "or ensure the ATV-Teams host has the token set in its process env. " +
+      "Bind COPILOT_GITHUB_TOKEN (or GH_TOKEN, GITHUB_TOKEN) in the agent's environment, " +
       "Personal access tokens must be fine-grained with the 'Copilot Requests' permission; " +
       "classic `ghp_` tokens are not supported by Copilot CLI.";
     await onLog("stderr", `${message}\n`);

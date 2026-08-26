@@ -32,8 +32,8 @@ function normalizeEnv(input: unknown): Record<string, string> {
  * Checks:
  * 1. cwd is a valid absolute directory
  * 2. The `copilot` command is resolvable on PATH
- * 3. An OAuth token has been configured for this company (warn — operator
- *    can still finish setup later; it's a hint, not a fail)
+ * 3. A scoped Copilot token is present in the resolved adapter environment
+ *    (warn — operator can still finish setup later; it's a hint, not a fail)
  */
 export async function testEnvironment(
   ctx: AdapterEnvironmentTestContext,
@@ -94,25 +94,21 @@ export async function testEnvironment(
     });
   }
 
-  const credentialSecretKey = asString(config.credentialSecretKey, "").trim();
-  if (!credentialSecretKey) {
+  const tokenKey = ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"]
+    .find((key) => typeof env[key] === "string" && env[key].trim().length > 0);
+  if (!tokenKey) {
     checks.push({
       code: "copilot_oauth_not_configured",
       level: "warn",
       message: "No OAuth token configured for this Copilot agent yet.",
       hint:
-        "Complete the GitHub OAuth device flow from the agent settings, then set `credentialSecretKey` on this agent.",
+        "Bind COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN through the agent environment-secret editor.",
     });
   } else {
-    // NOTE: this only verifies that a secret KEY is configured on the agent.
-    // It does not call into the secret store to verify the underlying token
-    // exists, is unrevoked, and still works against api.github.com. That
-    // deeper probe is intentionally deferred to the Phase 3 device-flow UI,
-    // which also gates token issuance through this code path.
     checks.push({
-      code: "copilot_oauth_secret_key_configured",
+      code: "copilot_oauth_token_configured",
       level: "info",
-      message: `OAuth credential secret key configured: ${credentialSecretKey}`,
+      message: `OAuth credential is available through ${tokenKey}.`,
     });
   }
 
