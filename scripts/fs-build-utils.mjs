@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { basename, resolve } from "node:path";
-import { cpSync, mkdirSync, rmSync } from "node:fs";
+import { chmodSync, cpSync, mkdirSync, rmSync } from "node:fs";
 
 export function cleanPaths(paths, cwd = process.cwd()) {
   for (const target of paths) {
@@ -21,9 +21,13 @@ export function copyTree(source, destination, cwd = process.cwd()) {
   cpSync(resolve(cwd, source), resolve(cwd, destination), { recursive: true });
 }
 
+export function markExecutable(filePath, cwd = process.cwd()) {
+  chmodSync(resolve(cwd, filePath), 0o755);
+}
+
 function usage() {
   console.error(
-    "Usage: fs-build-utils.mjs clean <path...> | copy-files <dest-dir> <source...> | copy-tree <source> <dest>",
+    "Usage: fs-build-utils.mjs clean <path...> | copy-files <dest-dir> <source...> | copy-tree <source> <dest> | chmod-exec <path>",
   );
 }
 
@@ -39,6 +43,10 @@ function main(argv) {
   }
   if (command === "copy-tree" && args.length === 2) {
     copyTree(args[0], args[1]);
+    return;
+  }
+  if (command === "chmod-exec" && args.length === 1) {
+    markExecutable(args[0]);
     return;
   }
   usage();
