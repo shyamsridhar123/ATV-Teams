@@ -126,6 +126,67 @@ describe("teams catalog manifest", () => {
     expect(result.manifest.teams[0]!.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
 
+  it("normalizes text line endings before hashing local files", async () => {
+    const packageDir = await createCatalogPackage();
+    await writeTeam(packageDir, "bundled", "operations", "line-endings", {
+      frontmatter: [
+        "name: Line Endings",
+        "description: Verify deterministic team hashes.",
+        "schema: agentcompanies/v1",
+        "manager: agents/lead/AGENTS.md",
+      ],
+      files: {
+        "agents/lead/AGENTS.md": [
+          "---",
+          "name: Lead",
+          "slug: lead",
+          "---",
+          "",
+          "Lead work.",
+          "",
+        ].join("\r\n"),
+      },
+    });
+    const entrypoint = path.join(
+      packageDir,
+      "catalog",
+      "bundled",
+      "operations",
+      "line-endings",
+      "TEAM.md",
+    );
+    const lfEntrypoint = await fs.readFile(entrypoint, "utf8");
+    await fs.writeFile(entrypoint, lfEntrypoint.replace(/\n/g, "\r\n"), "utf8");
+
+    const crlf = await buildCatalogManifest({
+      packageDir,
+      generatedAt: "2026-08-26T00:00:00.000Z",
+      catalogSkills,
+    });
+    await fs.writeFile(entrypoint, lfEntrypoint, "utf8");
+    await fs.writeFile(
+      path.join(path.dirname(entrypoint), "agents", "lead", "AGENTS.md"),
+      [
+        "---",
+        "name: Lead",
+        "slug: lead",
+        "---",
+        "",
+        "Lead work.",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const lf = await buildCatalogManifest({
+      packageDir,
+      generatedAt: "2026-08-26T00:00:00.000Z",
+      catalogSkills,
+    });
+
+    expect(crlf.manifest.teams[0]?.files).toEqual(lf.manifest.teams[0]?.files);
+    expect(crlf.manifest.teams[0]?.contentHash).toBe(lf.manifest.teams[0]?.contentHash);
+  });
+
   it("reports frontmatter, directory, uniqueness, reference, and skill errors together", async () => {
     const packageDir = await createCatalogPackage();
     await writeTeam(packageDir, "bundled", "Bad_Category", "duplicate", {

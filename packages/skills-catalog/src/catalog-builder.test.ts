@@ -60,6 +60,47 @@ describe("skills catalog manifest", () => {
     expect(result.manifest.skills[0]!.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
 
+  it("normalizes text line endings before hashing local files", async () => {
+    const packageDir = await createCatalogPackage();
+    await writeSkill(packageDir, "bundled", "quality", "line-endings", {
+      frontmatter: [
+        "name: Line Endings",
+        "description: Verify deterministic catalog hashes.",
+      ],
+      files: {
+        "references/checklist.md": "# One\r\n# Two\r\n",
+      },
+    });
+    const entrypoint = path.join(
+      packageDir,
+      "catalog",
+      "bundled",
+      "quality",
+      "line-endings",
+      "SKILL.md",
+    );
+    const lfEntrypoint = await fs.readFile(entrypoint, "utf8");
+    await fs.writeFile(entrypoint, lfEntrypoint.replace(/\n/g, "\r\n"), "utf8");
+
+    const crlf = await buildCatalogManifest({
+      packageDir,
+      generatedAt: "2026-08-26T00:00:00.000Z",
+    });
+    await fs.writeFile(entrypoint, lfEntrypoint, "utf8");
+    await fs.writeFile(
+      path.join(path.dirname(entrypoint), "references", "checklist.md"),
+      "# One\n# Two\n",
+      "utf8",
+    );
+    const lf = await buildCatalogManifest({
+      packageDir,
+      generatedAt: "2026-08-26T00:00:00.000Z",
+    });
+
+    expect(crlf.manifest.skills[0]?.files).toEqual(lf.manifest.skills[0]?.files);
+    expect(crlf.manifest.skills[0]?.contentHash).toBe(lf.manifest.skills[0]?.contentHash);
+  });
+
   it("builds stable manifest entries from pinned GitHub references", async () => {
     const packageDir = await createCatalogPackage();
     const skillMarkdown = [
