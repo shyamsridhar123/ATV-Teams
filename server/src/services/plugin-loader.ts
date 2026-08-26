@@ -5,7 +5,7 @@
  *
  * 1. **Discovery** — Scans the local plugin directory
  *    (`~/.paperclip/plugins/`) and `node_modules` for packages matching
- *    the `atv-plugin-*` naming convention. Aggregates results with
+ *    the `paperclip-plugin-*` naming convention. Aggregates results with
  *    path-based deduplication.
  *
  * 2. **Installation** — `installPlugin()` downloads from npm (or reads a
@@ -70,7 +70,7 @@ const STANDALONE_BUNDLED_PLUGIN_SDK_PACKAGE = "@paperclipai/plugin-sdk";
  *
  * @see PLUGIN_SPEC.md §10 — Package Contract
  */
-export const NPM_PLUGIN_PACKAGE_PREFIX = "atv-plugin-";
+export const NPM_PLUGIN_PACKAGE_PREFIX = "paperclip-plugin-";
 
 /**
  * Default local plugin directory.  The loader scans this directory for
@@ -219,7 +219,7 @@ export interface DiscoveredPlugin {
  */
 export type PluginSource =
   | "local-filesystem"  // ~/.paperclip/plugins/ local directory
-  | "npm"               // npm packages matching atv-plugin-* convention
+  | "npm"               // npm packages matching paperclip-plugin-* convention
   | "registry";         // future: remote plugin registry URL
 
 type ParsedSemver = {
@@ -284,7 +284,7 @@ export interface PluginLoaderOptions {
   enableLocalFilesystem?: boolean;
 
   /**
-   * Whether to discover installed npm packages matching the atv-plugin-*
+   * Whether to discover installed npm packages matching the paperclip-plugin-*
    * naming convention.
    * Defaults to true.
    */
@@ -307,7 +307,7 @@ export interface PluginLoaderOptions {
  */
 export interface PluginInstallOptions {
   /**
-   * npm package name to install (e.g. "atv-plugin-linear" or "@acme/plugin-linear").
+   * npm package name to install (e.g. "paperclip-plugin-linear" or "@acme/plugin-linear").
    * Either packageName or localPath must be set.
    */
   packageName?: string;
@@ -483,7 +483,7 @@ export interface PluginLoader {
 
   /**
    * Discover ATV-Teams plugins installed as npm packages in the current
-   * Node.js environment matching the "atv-plugin-*" naming convention.
+   * Node.js environment matching the "paperclip-plugin-*" naming convention.
    *
    * Looks for packages in node_modules that match the naming convention.
    *
@@ -647,7 +647,7 @@ export interface PluginLoader {
 
 /**
  * Check whether a package name matches the ATV-Teams plugin naming convention.
- * Accepts both the "atv-plugin-" prefix and scoped "@scope/plugin-" packages.
+ * Accepts both the "paperclip-plugin-" prefix and scoped "@scope/plugin-" packages.
  *
  * @see PLUGIN_SPEC.md §10 — Package Contract
  */
@@ -1098,7 +1098,7 @@ export function getPluginUiContributionMetadata(
  *
  * // Install a specific plugin
  * const discovered = await loader.installPlugin({
- *   packageName: "atv-plugin-linear",
+ *   packageName: "paperclip-plugin-linear",
  *   version: "^1.0.0",
  * });
  * ```

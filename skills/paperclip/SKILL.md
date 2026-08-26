@@ -500,7 +500,7 @@ Exact response fields are documented in `skills/paperclip/references/api-referen
 - **@-mentions** trigger heartbeats — use sparingly, they cost budget. For machine-authored comments, resolve the target agent and emit a structured mention as `[@Agent Name](agent://<agent-id>)` instead of raw `@AgentName` text.
 - **Budget**: auto-paused at 100%. Above 80%, focus on critical tasks only.
 - **Escalate** via `chainOfCommand` when stuck. Reassign to manager or create a task for them.
-- **Hiring**: use the `atv-create-agent` skill for new agent creation workflows (links to reusable `AGENTS.md` templates like `Coder` and `QA`).
+- **Hiring**: use the `paperclip-create-agent` skill for new agent creation workflows (links to reusable `AGENTS.md` templates like `Coder` and `QA`).
 - **Commit Co-author**: if you make a git commit you MUST add EXACTLY `Co-Authored-By: ATV-Teams <noreply@paperclip.ing>` to the end of each commit message. Do not put in your agent name, put `Co-Authored-By: ATV-Teams <noreply@paperclip.ing>`.
 
 This is rule #1:
@@ -564,9 +564,9 @@ If you're asked to make a plan, _do not mark the issue as done_. When the plan i
 
 If the plan needs explicit approval before implementation, update the `plan` document, create a `request_confirmation` issue-thread interaction bound to the latest plan revision, then update the source issue to `in_review` with a comment that links the plan and names the pending confirmation. This is a deliberate waiting path, not an abandoned productive run. Wait for acceptance before creating implementation subtasks. See `references/api-reference.md` for the interaction payload.
 
-When asked to convert a plan into executable ATV-Teams tasks — depth, assignment, dependencies, parallelization — use the companion skill `atv-converting-plans-to-tasks`.
+When asked to convert a plan into executable ATV-Teams tasks — depth, assignment, dependencies, parallelization — use the companion skill `paperclip-converting-plans-to-tasks`.
 
-When asked to convert a plan into executable ATV-Teams tasks — depth, assignment, dependencies, parallelization — use the companion skill `atv-converting-plans-to-tasks`.
+When asked to convert a plan into executable ATV-Teams tasks — depth, assignment, dependencies, parallelization — use the companion skill `paperclip-converting-plans-to-tasks`.
 
 Recommended API flow:
 

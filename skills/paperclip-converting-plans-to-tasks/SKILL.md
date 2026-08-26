@@ -1,5 +1,5 @@
 ---
-name: atv-converting-plans-to-tasks
+name: paperclip-converting-plans-to-tasks
 description: >
   Convert ATV-Teams plans into executable issue graphs. Use when asked to plan,
   scope, or break down ATV-Teams company work into assigned tasks with specialty
