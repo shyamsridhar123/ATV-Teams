@@ -5,8 +5,11 @@ Maintainer runbook for shipping ATV-Teams across npm, GitHub, and the website-fa
 The release model is now commit-driven:
 
 1. Every push to upstream `paperclipai/paperclip` publishes a canary automatically.
-   This fork publishes canaries only when the repository variable
-   `ENABLE_NPM_CANARY_PUBLISH` is set to `true`.
+This fork publishes canaries only when the repository variable
+`ENABLE_NPM_CANARY_PUBLISH` is set to `true`.
+Upstream-sync pull requests may enroll a new package before its one-time npm
+bootstrap. The sync CI defers only the registry-existence policy check. The
+first publish still requires the bootstrap steps in `doc/PUBLISHING.md`.
 2. Once a night, the newest master commit with a green canary publish is
    smoke-tested and republished as the nightly.
 3. Betas are manual, human-approved promotions of a chosen nightly.
