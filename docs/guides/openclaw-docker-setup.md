@@ -82,7 +82,7 @@ PAPERCLIP_COOKIE="your_session_cookie=..." pnpm smoke:openclaw-join
 - If ATV-Teams rejects the container-visible host with a hostname error, allow it from host:
 
 ```bash
-pnpm paperclipai allowed-hostname host.docker.internal
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname host.docker.internal
 ```
 
 Then restart ATV-Teams and rerun the smoke script.
@@ -90,7 +90,7 @@ Then restart ATV-Teams and rerun the smoke script.
 - Authenticated/private mode: ensure hostnames are in the allowed list when required:
 
 ```bash
-pnpm paperclipai allowed-hostname <host>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname <host>
 ```
 
 ## Prerequisites

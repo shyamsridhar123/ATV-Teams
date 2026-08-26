@@ -2,13 +2,13 @@
   "name": "@paperclipai/adapter-codex-local",
   "version": "0.3.1",
   "license": "MIT",
-  "homepage": "https://github.com/paperclipai/paperclip",
+  "homepage": "https://github.com/shyamsridhar123/ATV-Teams",
   "bugs": {
-    "url": "https://github.com/paperclipai/paperclip/issues"
+    "url": "https://github.com/shyamsridhar123/ATV-Teams/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/paperclipai/paperclip",
+    "url": "https://github.com/shyamsridhar123/ATV-Teams",
     "directory": "packages/adapters/codex-local"
   },
   "type": "module",
@@ -46,17 +46,18 @@
     "skills"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node ../../../scripts/fs-build-utils.mjs copy-files dist/server src/server/codex-auth-merge-decision.cjs src/server/codex-auth-merge-extract.sh",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "probe:quota": "pnpm exec tsx src/cli/quota-probe.ts --json"
   },
   "dependencies": {
+    "@agentclientprotocol/codex-acp": "^1.1.4",
     "@paperclipai/adapter-utils": "workspace:*",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
+    "@types/node": "^22.20.1",
     "typescript": "^5.7.3"
   }
 }

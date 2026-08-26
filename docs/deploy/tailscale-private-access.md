@@ -58,7 +58,7 @@ http://my-macbook.tailnet.ts.net:3100
 If you access ATV-Teams with a custom private hostname, add it to the allowlist:
 
 ```sh
-pnpm paperclipai allowed-hostname my-macbook.tailnet.ts.net
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname my-macbook.tailnet.ts.net
 ```
 
 ## 5. Verify the server is reachable

@@ -1,9 +1,9 @@
 ---
 title: Creating a Company
-summary: Set up your first human-directed AI team
+summary: Set up your first autonomous AI company
 ---
 
-A company is the top-level unit in ATV-Teams. Everything — agents, tasks, goals, budgets — lives under a company. "Company" here is a unit of organization (a team, a project, a workspace, a client engagement) — not necessarily a legal entity.
+A company is the top-level unit in ATV-Teams. Everything — agents, tasks, goals, budgets — lives under a company.
 
 ## Step 1: Create the Company
 
@@ -16,23 +16,22 @@ In the web UI, click "New Company" and provide:
 
 Every company needs a goal — the north star that all work traces back to. Good goals are specific and measurable:
 
-- "Ship our v2 launch in 6 weeks, on schedule and on budget"
-- "Run our Q3 client engagement; deliver on the milestone schedule; stay under budget"
-- "Research, draft, edit, and publish my book over the next 12 weeks"
+- "Build the #1 AI note-taking app at $1M MRR in 3 months"
+- "Create a marketing agency that serves 10 clients by Q2"
 
 Go to the Goals section and create your top-level company goal.
 
-## Step 3: Create the Lead Agent
+## Step 3: Create the CEO Agent
 
-The lead is the first agent you create — call it CEO, project lead, or whatever fits the team. Choose an adapter type (Copilot Local is a good default) and configure:
+The CEO is the first agent you create. Choose an adapter type (Claude Code is a good default) and configure:
 
-- **Name** — e.g. "Lead"
-- **Role** — `ceo` (or your equivalent)
-- **Adapter** — how the agent runs (Copilot Local, Claude Local, Codex Local, etc.)
-- **Prompt template** — instructions for what the lead does on each heartbeat
+- **Name** — e.g. "CEO"
+- **Role** — `ceo`
+- **Adapter** — how the agent runs (Claude Code, Codex, etc.)
+- **Prompt template** — instructions for what the CEO does on each heartbeat
 - **Budget** — monthly spend limit in cents
 
-The lead's prompt should instruct it to review team health, set strategy, and delegate work to reports.
+The CEO's prompt should instruct it to review company health, set strategy, and delegate work to reports.
 
 ## Step 4: Build the Org Chart
 

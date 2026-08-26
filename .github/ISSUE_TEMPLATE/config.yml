@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Roadmap
+    url: https://github.com/shyamsridhar123/ATV-Teams/blob/master/ROADMAP.md
+    about: Check the roadmap before requesting a feature
+  - name: Discussions
+    url: https://github.com/shyamsridhar123/ATV-Teams/discussions
+    about: Design discussions, questions, and feature coordination before opening a PR

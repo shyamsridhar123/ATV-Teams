@@ -1,6 +1,6 @@
 import type { AgentAdapterType, EnvironmentDriver } from "./constants.js";
 import type { SandboxEnvironmentProvider } from "./types/environment.js";
-import type { JsonSchema } from "./types/plugin.js";
+import type { JsonSchema, PluginEnvironmentTemplateConfigBinding } from "./types/plugin.js";
 
 export type EnvironmentSupportStatus = "supported" | "unsupported";
 
@@ -16,6 +16,12 @@ export interface EnvironmentProviderCapability {
   supportsUnsavedProbe: boolean;
   supportsRunExecution: boolean;
   supportsReusableLeases: boolean;
+  supportsInteractiveSetup: boolean;
+  interactiveSetupConnectionTypes: string[];
+  supportsTemplateCapture: boolean;
+  templateRefKind?: string;
+  templateConfigBinding?: PluginEnvironmentTemplateConfigBinding;
+  supportsTemplateDelete: boolean;
   displayName?: string;
   description?: string;
   source?: "builtin" | "plugin";
@@ -31,11 +37,11 @@ export interface EnvironmentCapabilities {
 }
 
 const REMOTE_MANAGED_ADAPTERS = new Set<AgentAdapterType>([
-  "acpx_local",
   "claude_local",
   "codex_local",
   "cursor",
   "gemini_local",
+  "grok_local",
   "opencode_local",
   "pi_local",
 ]);
@@ -116,7 +122,13 @@ export function getEnvironmentCapabilities(
       supportsSavedProbe: true,
       supportsUnsavedProbe: true,
       supportsRunExecution: false,
-      supportsReusableLeases: true,
+      // The fake provider runtime declares false. The presentation must match
+      // it, so execution and presentation agree.
+      supportsReusableLeases: false,
+      supportsInteractiveSetup: false,
+      interactiveSetupConnectionTypes: [],
+      supportsTemplateCapture: false,
+      supportsTemplateDelete: false,
       displayName: "Fake",
       source: "builtin",
     },
@@ -127,7 +139,15 @@ export function getEnvironmentCapabilities(
       supportsSavedProbe: capability.supportsSavedProbe ?? true,
       supportsUnsavedProbe: capability.supportsUnsavedProbe ?? true,
       supportsRunExecution: capability.supportsRunExecution ?? true,
-      supportsReusableLeases: capability.supportsReusableLeases ?? true,
+      // Default absent to false. A manifest that does not declare reusable
+      // leases must present as false, so execution (=== true) agrees.
+      supportsReusableLeases: capability.supportsReusableLeases ?? false,
+      supportsInteractiveSetup: capability.supportsInteractiveSetup ?? false,
+      interactiveSetupConnectionTypes: capability.interactiveSetupConnectionTypes ?? [],
+      supportsTemplateCapture: capability.supportsTemplateCapture ?? false,
+      templateRefKind: capability.templateRefKind,
+      templateConfigBinding: capability.templateConfigBinding,
+      supportsTemplateDelete: capability.supportsTemplateDelete ?? false,
       displayName: capability.displayName,
       description: capability.description,
       source: capability.source ?? "plugin",

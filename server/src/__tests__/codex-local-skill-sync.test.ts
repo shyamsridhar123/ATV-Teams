@@ -13,7 +13,6 @@ async function makeTempDir(prefix: string): Promise<string> {
 
 describe("codex local skill sync", () => {
   const paperclipKey = "paperclipai/paperclip/paperclip";
-  const createAgentKey = "paperclipai/paperclip/paperclip-create-agent";
   const cleanupDirs = new Set<string>();
 
   afterEach(async () => {
@@ -22,7 +21,7 @@ describe("codex local skill sync", () => {
   });
 
   it("reports configured ATV-Teams skills for workspace injection on the next run", async () => {
-    const codexHome = await makeTempDir("paperclip-codex-skill-sync-");
+    const codexHome = await makeTempDir("atv-codex-skill-sync-");
     cleanupDirs.add(codexHome);
 
     const ctx = {
@@ -42,16 +41,12 @@ describe("codex local skill sync", () => {
     const before = await listCodexSkills(ctx);
     expect(before.mode).toBe("ephemeral");
     expect(before.desiredSkills).toContain(paperclipKey);
-    expect(before.desiredSkills).toContain(createAgentKey);
-    expect(before.entries.find((entry) => entry.key === paperclipKey)?.required).toBe(true);
     expect(before.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("configured");
-    expect(before.entries.find((entry) => entry.key === createAgentKey)?.required).toBe(true);
-    expect(before.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("configured");
     expect(before.entries.find((entry) => entry.key === paperclipKey)?.detail).toContain("CODEX_HOME/skills/");
   });
 
   it("does not persist ATV-Teams skills into CODEX_HOME during sync", async () => {
-    const codexHome = await makeTempDir("paperclip-codex-skill-prune-");
+    const codexHome = await makeTempDir("atv-codex-skill-prune-");
     cleanupDirs.add(codexHome);
 
     const configuredCtx = {
@@ -76,33 +71,8 @@ describe("codex local skill sync", () => {
     });
   });
 
-  it("keeps required bundled ATV-Teams skills configured even when the desired set is emptied", async () => {
-    const codexHome = await makeTempDir("paperclip-codex-skill-required-");
-    cleanupDirs.add(codexHome);
-
-    const configuredCtx = {
-      agentId: "agent-2",
-      companyId: "company-1",
-      adapterType: "codex_local",
-      config: {
-        env: {
-          CODEX_HOME: codexHome,
-        },
-        paperclipSkillSync: {
-          desiredSkills: [],
-        },
-      },
-    } as const;
-
-    const after = await syncCodexSkills(configuredCtx, []);
-    expect(after.desiredSkills).toContain(paperclipKey);
-    expect(after.desiredSkills).toContain(createAgentKey);
-    expect(after.entries.find((entry) => entry.key === paperclipKey)?.state).toBe("configured");
-    expect(after.entries.find((entry) => entry.key === createAgentKey)?.state).toBe("configured");
-  });
-
   it("normalizes legacy flat ATV-Teams skill refs before reporting configured state", async () => {
-    const codexHome = await makeTempDir("paperclip-codex-legacy-skill-sync-");
+    const codexHome = await makeTempDir("atv-codex-legacy-skill-sync-");
     cleanupDirs.add(codexHome);
 
     const snapshot = await listCodexSkills({

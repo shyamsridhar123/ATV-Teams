@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "Stable public API for ATV-Teams plugins — worker-side context and UI bridge hooks",
   "license": "MIT",
-  "homepage": "https://github.com/paperclipai/paperclip",
+  "homepage": "https://github.com/shyamsridhar123/ATV-Teams",
   "bugs": {
-    "url": "https://github.com/paperclipai/paperclip/issues"
+    "url": "https://github.com/shyamsridhar123/ATV-Teams/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/paperclipai/paperclip",
+    "url": "https://github.com/shyamsridhar123/ATV-Teams",
     "directory": "packages/plugins/sdk"
   },
   "type": "module",
@@ -112,8 +112,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
-    "@types/react": "^19.0.8",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.17",
     "typescript": "^5.7.3"
   },
   "peerDependencies": {

@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "description": "Cloudflare sandbox provider plugin for ATV-Teams environments",
   "license": "MIT",
-  "homepage": "https://github.com/paperclipai/paperclip",
+  "homepage": "https://github.com/shyamsridhar123/ATV-Teams",
   "bugs": {
-    "url": "https://github.com/paperclipai/paperclip/issues"
+    "url": "https://github.com/shyamsridhar123/ATV-Teams/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/paperclipai/paperclip",
+    "url": "https://github.com/shyamsridhar123/ATV-Teams",
     "directory": "packages/plugins/sandbox-providers/cloudflare"
   },
   "type": "module",
@@ -42,9 +42,8 @@
     "cloudflare"
   ],
   "scripts": {
-    "postinstall": "node ../../../../scripts/link-plugin-dev-sdk.mjs",
     "prebuild": "pnpm -C ../../../.. --filter @paperclipai/plugin-sdk ensure-build-deps",
-    "build": "rm -rf dist && tsc",
+    "build": "node ../../../../scripts/fs-build-utils.mjs clean dist && tsc",
     "clean": "rm -rf dist",
     "typecheck": "pnpm -C ../../../.. --filter @paperclipai/plugin-sdk ensure-build-deps && tsc --noEmit",
     "test": "pnpm -C ../../../.. --filter @paperclipai/plugin-sdk ensure-build-deps && vitest run --config vitest.config.ts",
@@ -54,6 +53,6 @@
   "devDependencies": {
     "@types/node": "^24.6.0",
     "typescript": "^5.7.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.8"
   }
 }

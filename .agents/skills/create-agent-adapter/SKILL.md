@@ -1,11 +1,9 @@
 ---
 name: create-agent-adapter
 description: >
-  Technical guide for creating a new ATV-Teams agent adapter. Use when building
-  a new adapter package, adding support for a new AI coding tool (e.g. a new
-  CLI agent, API-based agent, or custom process), or when modifying the adapter
-  system. Covers the required interfaces, module structure, registration points,
-  and conventions derived from the existing claude-local and codex-local adapters.
+  Create or modify ATV-Teams agent adapters across server, UI, and CLI surfaces.
+  Use when adding support for a new CLI agent, API agent, custom process, or
+  adapter package.
 ---
 
 # Creating a ATV-Teams Agent Adapter
@@ -571,7 +569,7 @@ ATV-Teams ships shared skills (in the repo's top-level `skills/` directory) that
 
 **How claude-local does it:**
 
-1. At execution time, create a fresh tmpdir: `mkdtemp("paperclip-skills-")`
+1. At execution time, create a fresh tmpdir: `mkdtemp("atv-skills-")`
 2. Inside it, create `.claude/skills/` (the directory structure Claude Code expects)
 3. Symlink each skill directory from the repo's `skills/` into the tmpdir's `.claude/skills/`
 4. Pass the tmpdir to Claude Code via `--add-dir <tmpdir>` — this makes Claude Code discover the skills as if they were registered in that directory, without touching the agent's actual cwd
@@ -580,7 +578,7 @@ ATV-Teams ships shared skills (in the repo's top-level `skills/` directory) that
 ```ts
 // From claude-local execute.ts
 async function buildSkillsDir(): Promise<string> {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-skills-"));
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "atv-skills-"));
   const target = path.join(tmp, ".claude", "skills");
   await fs.mkdir(target, { recursive: true });
   const entries = await fs.readdir(PAPERCLIP_SKILLS_DIR, { withFileTypes: true });

@@ -101,7 +101,19 @@ async function ensureWorkspaceLinksCurrent(workspaceDir: string) {
     const linkPath = path.join(repoRoot, mismatch.workspaceDir, "node_modules", ...mismatch.packageName.split("/"));
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.rm(linkPath, { recursive: true, force: true });
-    await fs.symlink(mismatch.expectedPath, linkPath);
+    try {
+      await fs.symlink(mismatch.expectedPath, linkPath);
+    } catch (err) {
+      // On Windows, directory symlinks require admin or Developer Mode. Junctions
+      // work without elevation and behave the same for module resolution. Mirrors
+      // the fallback in scripts/link-plugin-dev-sdk.mjs.
+      const code = (err as NodeJS.ErrnoException).code;
+      if ((code === "EPERM" || code === "EACCES") && process.platform === "win32") {
+        await fs.symlink(mismatch.expectedPath, linkPath, "junction");
+      } else {
+        throw err;
+      }
+    }
   }
 
   const remainingMismatches = findWorkspaceLinkMismatches(workspaceDir);

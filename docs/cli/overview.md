@@ -29,7 +29,7 @@ Company-scoped commands also accept `--company-id <id>`.
 For clean local instances, pass `--data-dir` on the command you run:
 
 ```sh
-pnpm paperclipai run --data-dir ./tmp/paperclip-dev
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run --data-dir ./tmp/paperclip-dev
 ```
 
 ## Context Profiles
@@ -38,7 +38,7 @@ Store defaults to avoid repeating flags:
 
 ```sh
 # Set defaults
-pnpm paperclipai context set --api-base http://localhost:3100 --company-id <id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context set --api-base http://localhost:3100 --company-id <id>
 
 # View current context
 pnpm paperclipai context show
@@ -47,24 +47,24 @@ pnpm paperclipai context show
 pnpm paperclipai context list
 
 # Switch profile
-pnpm paperclipai context use default
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context use default
 ```
 
 To avoid storing secrets in context, use an env var:
 
 ```sh
-pnpm paperclipai context set --api-key-env-var-name PAPERCLIP_API_KEY
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context set --api-key-env-var-name PAPERCLIP_API_KEY
 export PAPERCLIP_API_KEY=...
 ```
 
 Secret operations are available under `paperclipai secrets`:
 
 ```sh
-pnpm paperclipai secrets declarations --company-id <company-id> --kind secret
-pnpm paperclipai secrets create --company-id <company-id> --name anthropic-api-key --value-env ANTHROPIC_API_KEY
-pnpm paperclipai secrets link --company-id <company-id> --name prod-stripe-key --provider aws_secrets_manager --external-ref <provider-ref>
-pnpm paperclipai secrets doctor --company-id <company-id>
-pnpm paperclipai secrets migrate-inline-env --company-id <company-id> --apply
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets declarations --company-id <company-id> --kind secret
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets create --company-id <company-id> --name anthropic-api-key --value-env ANTHROPIC_API_KEY
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets link --company-id <company-id> --name prod-stripe-key --provider aws_secrets_manager --external-ref <provider-ref>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets doctor --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets migrate-inline-env --company-id <company-id> --apply
 ```
 
 Context is stored at `~/.paperclip/context.json`.
