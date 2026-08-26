@@ -57,17 +57,15 @@ Core fields:
 - command (string, optional): defaults to "copilot"
 - extraArgs (string[], optional): additional CLI args appended after built-in flags
 - env (object, optional): KEY=VALUE environment variables
-- credentialSecretKey (string, optional): the \`company_secrets\` key under which
-  the OAuth access token for this company is stored. When set, the token is
-  injected into the agent process as GH_TOKEN at runtime.
-
 Operational fields:
 - timeoutSec (number, optional): run timeout in seconds
 - graceSec (number, optional): SIGTERM grace period in seconds
 
 Notes:
-- The OAuth device flow is the only supported way to obtain a token. ATV-Teams
-  never asks the operator to paste a personal access token.
+- Bind the Copilot credential through the standard environment-secret editor
+  as COPILOT_GITHUB_TOKEN, GH_TOKEN, or GITHUB_TOKEN. ATV-Teams resolves the
+  company/user-scoped value immediately before the run.
+- Host-process GH_TOKEN and GITHUB_TOKEN values are never inherited by agents.
 - Tokens are stored encrypted at rest in \`company_secrets\` (provider:
   \`local_encrypted\`) and are scoped per-company. They are never written to
   prompts or logs and are redacted from \`onMeta\` invocation env dumps.

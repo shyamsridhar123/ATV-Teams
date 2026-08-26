@@ -477,9 +477,9 @@ export async function resolveCloudTenantActor(
   const stackId = requiredCloudHeader(req, "x-paperclip-cloud-stack-id");
   const stackRole = stackMembershipRole(req.header("x-paperclip-cloud-stack-role"));
   const userName = req.header("x-paperclip-cloud-user-name")?.trim() || userEmail;
-  const paperclipCompanyId = req.header("x-paperclip-cloud-atv-company-id")?.trim();
+  const paperclipCompanyId = req.header("x-paperclip-cloud-paperclip-company-id")?.trim();
   const paperclipCompanyName = req
-    .header("x-paperclip-cloud-atv-company-name")
+    .header("x-paperclip-cloud-paperclip-company-name")
     ?.trim();
   const companyId = cloudTenantCompanyId(stackId);
   const companyName = paperclipCompanyName || humanizeCloudStackSlug(stackId);
@@ -662,7 +662,7 @@ function constantTimeStringEqual(left: string, right: string): boolean {
 }
 
 function cloudTenantCompanyId(stackId: string): string {
-  const bytes = createHash("sha256").update(`atv-cloud-tenant-company:${stackId}`).digest();
+  const bytes = createHash("sha256").update(`paperclip-cloud-tenant-company:${stackId}`).digest();
   bytes[6] = (bytes[6] & 0x0f) | 0x50;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = bytes.subarray(0, 16).toString("hex");
@@ -672,7 +672,7 @@ function cloudTenantCompanyId(stackId: string): string {
 export function humanizeCloudStackSlug(stackId: string): string {
   const slug = stackId
     .trim()
-    .replace(/^atv-stack-/i, "")
+    .replace(/^paperclip-stack-/i, "")
     .replace(/^stack-/i, "");
   const displayName = slug
     .split(/[-_]+/)
@@ -688,7 +688,7 @@ export function isKnownBadCloudCompanyName(
 ): boolean {
   const normalized = name.trim();
   return (
-    /^atv-stack-.+/i.test(normalized) ||
+    /^paperclip-stack-.+/i.test(normalized) ||
     /^stack-.+\s+paperclip$/i.test(normalized) ||
     normalized === ids.companyId ||
     (ids.paperclipCompanyId !== undefined &&
