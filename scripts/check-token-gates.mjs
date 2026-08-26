@@ -72,7 +72,7 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..");
@@ -88,10 +88,14 @@ const CSS_PATH = resolve(UI_SRC, "index.css");
 // only lines starting with "* allow " are).
 function loadAllowlist(cssPath) {
   const css = readFileSync(cssPath, "utf8");
+  return parseAllowlist(css);
+}
+
+export function parseAllowlist(css) {
   const entries = [];
   const lineRe = /^\s*\*\s*allow\s+(\S+)\s+(?:—|-{1,2})\s*(.*)$/;
   for (const rawLine of css.split("\n")) {
-    const m = rawLine.match(lineRe);
+    const m = rawLine.trimEnd().match(lineRe);
     if (m) {
       entries.push({ path: m[1], reason: m[2].trim() });
     }
@@ -338,4 +342,5 @@ function relPathToPosix(filePath) {
   return ("ui/src/" + relative(UI_SRC, filePath)).split("\\").join("/");
 }
 
-main();
+const isMain = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+if (isMain) main();
