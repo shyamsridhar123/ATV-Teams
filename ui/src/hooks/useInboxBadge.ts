@@ -22,6 +22,7 @@ import {
   saveDismissedInboxAlerts,
   loadReadInboxItems,
   saveReadInboxItems,
+  DISMISSED_KEY,
   READ_ITEMS_KEY,
 } from "../lib/inbox";
 
@@ -35,7 +36,7 @@ export function useDismissedInboxAlerts() {
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
-      if (event.key !== "atv-teams:inbox:dismissed") return;
+      if (event.key !== DISMISSED_KEY) return;
       setDismissed(loadDismissedInboxAlerts());
     };
     window.addEventListener("storage", handleStorage);
