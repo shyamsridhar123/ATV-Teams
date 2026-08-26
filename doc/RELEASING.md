@@ -10,6 +10,8 @@ This fork publishes canaries only when the repository variable
 Upstream-sync pull requests may enroll a new package before its one-time npm
 bootstrap. The sync CI defers only the registry-existence policy check. The
 first publish still requires the bootstrap steps in `doc/PUBLISHING.md`.
+Remove that sync-only exception after the package has completed its first
+registry publish.
 2. Once a night, the newest master commit with a green canary publish is
    smoke-tested and republished as the nightly.
 3. Betas are manual, human-approved promotions of a chosen nightly.
