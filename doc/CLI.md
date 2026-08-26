@@ -8,112 +8,48 @@ ATV-Teams CLI now supports both:
 
 ## Security: safe invocation for content-bearing arguments
 
-Use `npx paperclipai` for any command whose argument can hold untrusted or
-semi-trusted content. Untrusted content includes issue text, comment bodies,
-Markdown, pasted snippets, and model output. `npx` runs the CLI binary directly.
-It passes the argument as an inert `argv` value. It does not run a shell over the
-value. `npx paperclipai` works on any machine with Node: it runs a local install
-of the `paperclipai` package, and it fetches the published package when no local
-install is present.
+This fork is not published as the `paperclipai` npm package. An unversioned
+`npx paperclipai` command can download and run upstream code instead of this
+checkout.
 
-Do not use `pnpm paperclipai` for a content-bearing argument. `pnpm paperclipai`
-is a `package.json` script. `pnpm` builds a `/bin/sh` command string and appends
-the argument to it, so the shell reads the argument first. The shell interprets
-these spans before the CLI starts:
+Do not use `pnpm paperclipai` for a command with a caller-supplied value.
+`pnpm` appends the value to a shell command string. The shell can interpret
+command substitutions and environment-variable expansions before the CLI
+starts.
 
-- command substitution: a backtick pair or `$( )`
-- variable expansion: `$NAME` or `${NAME}` (this can leak a secret value into the persisted argument)
+Use this direct local command for every path, ref, id, name, payload, secret,
+or free-text argument:
 
-A crafted value can run an arbitrary command as the invoking user. A crafted
-value can also expand an environment variable into the stored argument. No
-CLI-side check stops this, because the shell runs before `cli/src` starts. This
-is true even when the argument comes from a quoted shell variable, because `pnpm`
-re-evaluates the value in its own shell.
+```sh
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts <command> <args>
+```
 
-Safe forms:
+It runs the checked-out source and passes each argument as inert `argv` data
+directly to the CLI.
+For shorter interactive commands, define the local `paperclipai` alias from
+`doc/DEVELOPING.md`.
 
-- `npx paperclipai <command> <args>` — the documented default. It passes an inert
-  `argv` value and runs on any machine.
-- `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts <command> <args>` —
-  the safe form to run the local source from a monorepo checkout. It is the exact
-  command that the `pnpm paperclipai` script wraps, but it runs directly, so no
-  shell reads the argument. Use it when you must test your local `cli/src`
-  changes with a content-bearing argument.
+`pnpm paperclipai` remains valid only for exact fixed commands on the guard
+allowlist, such as `pnpm paperclipai --help`, `pnpm paperclipai onboard --yes`,
+and `pnpm paperclipai doctor`. A fixed command has no path, id, ref, name,
+placeholder, interpolation, or value-bearing option.
 
-Unsafe or broken forms:
-
-- `pnpm paperclipai <command> <args>` — unsafe. `pnpm` runs the argument through a
-  shell first.
-- `pnpm run <script> -- <args>`, or any `package.json` script that wraps the CLI —
-  unsafe for the same reason.
-- `pnpm exec paperclipai <command> <args>` — broken. The root workspace does not
-  depend on the `paperclipai` package, so `pnpm` does not link its binary into
-  `node_modules/.bin`. The command fails with `Command "paperclipai" not found`,
-  even after a build. Do not use it.
-
-Static placeholders only: a document must show a static placeholder such as
-`<host>` in a command example, never a live `$( )` or `$NAME` span. The reader's
-own shell expands such a span on paste, before any CLI or `npx` receives argv, so
-a direct-exec form does not stop it.
-
-`pnpm paperclipai` stays acceptable only for a fully literal local lifecycle or
-setup command. A fully literal command carries no substitutable value. It has no
-placeholder, no example value the reader replaces, no interpolation, no path, no
-ref, no id, and no name. It holds the subcommand and, at most, flags that take no
-value.
-
-The allowlist of literal commands lives in one place:
-`server/src/__tests__/cli-invocation-safety.test.ts`. A guard test enforces it
-fail-closed. Any `pnpm paperclipai` line whose command string is not an exact
-allowlist entry is an offender. The allowlist holds commands such as `run`,
-`onboard`, `onboard --yes`, `doctor`, `configure --section <name>`, `connect`,
-`env-lab up`, `env-lab down`, `context show`, `context list`,
-`worktree ensure-seeded`, and `worktree env`.
-
-Every invocation that carries a positional value or an option value uses
-`npx paperclipai` instead. This covers a hostname (`allowed-hostname`), an import
-URL or folder (`company import`), an identifier or secret (`--company-id`,
-`--agent-id`, `--claim-secret`), a payload (`--payload-json`), free text
-(`--body`, `--title`, `--comment`), a data directory (`--data-dir`), an instance
-(`--instance`), a bind preset (`--bind`), a context-profile name, and every
-worktree path, ref, id, or name option. A runtime value counts as non-fixed even
-when it looks safe. The private-hostname guard builds `allowed-hostname <value>`
-from the request Host header, so it uses `npx paperclipai`.
-
-For a command that must run the local checked-out source with a value, use the
-direct-exec form: `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts
-<command> <args>`.
-
-The `pnpm --filter @paperclipai/*` build and test commands are not CLI
-invocation. They do not change.
+The fail-closed guard lives in
+`server/src/__tests__/cli-invocation-safety.test.ts`. It checks all current
+guidance surfaces.
 
 ### Offline and air-gapped use
 
-`npx paperclipai` runs offline when the `paperclipai` package is already in a
-local install or in the npm cache. It reaches the network only when the package
-is in neither place.
+The direct local command runs without registry access after dependencies are
+installed. Copy the repository and pnpm store into the air-gapped environment,
+complete the install from that store, and run:
 
-To force cache-only resolution and block any network attempt, run
-`npx --offline paperclipai <command> <args>`. Use `npx --prefer-offline
-paperclipai` when you accept a fetch only for a missing package.
+```sh
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts <command> <args>
+```
 
-To prepare an air-gapped host, install the package one time while the host is
-online. Run `npm install -g paperclipai`, or run the documented `install.sh`
-path. After that step, both `npx paperclipai` and the installed `paperclipai`
-binary run offline. Both pass an inert `argv` value.
-
-To move the package without a registry, run `npm pack paperclipai` on an online
-host. Copy the tarball to the air-gapped host. Run `npm install -g
-./paperclipai-<version>.tgz`.
-
-Do not use `pnpm paperclipai` as an offline fallback for a content-bearing
-argument. It runs the argument through a shell first, offline or online. It also
-resolves only inside a monorepo checkout.
-
-A monorepo contributor who works offline uses the direct-exec form that this
-section documents above: `node cli/node_modules/tsx/dist/cli.mjs
-cli/src/index.ts <command> <args>`. It passes an inert `argv` value and runs the
-local source.
+Do not use `npx` as an offline fallback. It can resolve a different published
+package.
 
 ## Base Usage
 
@@ -221,7 +157,7 @@ Canonical behavior is documented in `doc/DEPLOYMENT-MODES.md`.
 Allow an authenticated/private hostname (for example custom Tailscale DNS):
 
 ```sh
-npx paperclipai allowed-hostname dotta-macbook-pro
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname dotta-macbook-pro
 ```
 
 Bring up the default local SSH fixture for environment testing:
@@ -270,8 +206,8 @@ Profiles store token env-var names, not plaintext tokens. The wizard prints shel
 Use `--data-dir` on any CLI command to isolate all default local state (config/context/db/logs/storage/secrets) away from `~/.paperclip`:
 
 ```sh
-npx paperclipai run --data-dir ./tmp/atv-dev
-npx paperclipai issue list --data-dir ./tmp/atv-dev
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run --data-dir ./tmp/atv-dev
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue list --data-dir ./tmp/atv-dev
 ```
 
 ## Context Profiles
@@ -279,45 +215,45 @@ npx paperclipai issue list --data-dir ./tmp/atv-dev
 Store local defaults in `~/.paperclip/context.json`:
 
 ```sh
-npx paperclipai context set --api-base http://localhost:3100 --company-id <company-id>
-npx paperclipai context set --persona agent --agent-id <agent-id> --api-key-env-var-name PAPERCLIP_API_KEY
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context set --api-base http://localhost:3100 --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context set --persona agent --agent-id <agent-id> --api-key-env-var-name PAPERCLIP_API_KEY
 pnpm paperclipai context show
 pnpm paperclipai context list
-npx paperclipai context use default
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context use default
 ```
 
 To avoid storing secrets in context, set `apiKeyEnvVarName` and keep the key in env:
 
 ```sh
-npx paperclipai context set --api-key-env-var-name PAPERCLIP_API_KEY
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts context set --api-key-env-var-name PAPERCLIP_API_KEY
 export PAPERCLIP_API_KEY=...
 ```
 
 ## Company Commands
 
 ```sh
-npx paperclipai company list
-npx paperclipai company get <company-id>
-npx paperclipai company current [--company-id <company-id>]
-npx paperclipai company stats
-npx paperclipai company create --payload-json '{...}'
-npx paperclipai company update <company-id> --payload-json '{...}'
-npx paperclipai company branding:update <company-id> --payload-json '{...}'
-npx paperclipai company archive <company-id>
-npx paperclipai company export <company-id> --out ./company --include company,agents,projects,issues,skills
-npx paperclipai company export:preview <company-id> --payload-json '{...}'
-npx paperclipai company export:api <company-id> --payload-json '{...}'
-npx paperclipai company import ./company --target new --new-company-name "Imported Company"
-npx paperclipai company import:preview <company-id> --payload-json '{...}'
-npx paperclipai company import:apply <company-id> --payload-json '{...}'
-npx paperclipai company delete <company-id-or-prefix> --yes --confirm <same-id-or-prefix>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company list
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company get <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company current [--company-id <company-id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company stats
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company create --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company update <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company branding:update <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company archive <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company export <company-id> --out ./company --include company,agents,projects,issues,skills
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company export:preview <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company export:api <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company import ./company --target new --new-company-name "Imported Company"
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company import:preview <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company import:apply <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company delete <company-id-or-prefix> --yes --confirm <same-id-or-prefix>
 ```
 
 Examples:
 
 ```sh
-npx paperclipai company delete PAP --yes --confirm PAP
-npx paperclipai company delete 5cbe79ee-acb3-4597-896e-7662742593cd --yes --confirm 5cbe79ee-acb3-4597-896e-7662742593cd
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company delete PAP --yes --confirm PAP
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company delete 5cbe79ee-acb3-4597-896e-7662742593cd --yes --confirm 5cbe79ee-acb3-4597-896e-7662742593cd
 ```
 
 Notes:
@@ -334,149 +270,149 @@ Notes:
 ## Issue Commands
 
 ```sh
-npx paperclipai issue list --company-id <company-id> [--status todo,in_progress] [--assignee-agent-id <agent-id>] [--match text]
-npx paperclipai issue get <issue-id-or-identifier>
-npx paperclipai issue create --company-id <company-id> --title "..." [--description "..."] [--status todo] [--priority high]
-npx paperclipai issue update <issue-id> [--status in_progress] [--comment "..."]
-npx paperclipai issue delete <issue-id> --yes
-npx paperclipai issue comment <issue-id> --body "..." [--reopen]
-npx paperclipai issue comments <issue-id> [--limit 50]
-npx paperclipai issue comment:get <issue-id> <comment-id>
-npx paperclipai issue comment:delete <issue-id> <comment-id>
-npx paperclipai issue runs <issue-id-or-identifier>
-npx paperclipai issue live-runs <issue-id-or-identifier>
-npx paperclipai issue active-run <issue-id-or-identifier>
-npx paperclipai issue heartbeat-context <issue-id>
-npx paperclipai issue checkout <issue-id> --agent-id <agent-id> [--expected-statuses todo,backlog,blocked]
-npx paperclipai issue release <issue-id>
-npx paperclipai issue force-release <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue list --company-id <company-id> [--status todo,in_progress] [--assignee-agent-id <agent-id>] [--match text]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue get <issue-id-or-identifier>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue create --company-id <company-id> --title "..." [--description "..."] [--status todo] [--priority high]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue update <issue-id> [--status in_progress] [--comment "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue delete <issue-id> --yes
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue comment <issue-id> --body "..." [--reopen]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue comments <issue-id> [--limit 50]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue comment:get <issue-id> <comment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue comment:delete <issue-id> <comment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue runs <issue-id-or-identifier>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue live-runs <issue-id-or-identifier>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue active-run <issue-id-or-identifier>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue heartbeat-context <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue checkout <issue-id> --agent-id <agent-id> [--expected-statuses todo,backlog,blocked]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue release <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue force-release <issue-id>
 ```
 
 Issue subresources are exposed as ATV-Teams API wrappers. Commands that map to broad server schemas accept JSON payloads and validate them with shared schemas before sending.
 
 ```sh
-npx paperclipai issue child:create <issue-id> --payload-json '{"title":"Child task"}'
-npx paperclipai issue approvals <issue-id>
-npx paperclipai issue approval:link <issue-id> <approval-id>
-npx paperclipai issue approval:unlink <issue-id> <approval-id>
-npx paperclipai issue read <issue-id>
-npx paperclipai issue unread <issue-id>
-npx paperclipai issue archive <issue-id>
-npx paperclipai issue unarchive <issue-id>
-npx paperclipai issue recovery-actions <issue-id>
-npx paperclipai issue recovery:resolve <issue-id> --outcome restored --source-issue-status todo
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue child:create <issue-id> --payload-json '{"title":"Child task"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue approvals <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue approval:link <issue-id> <approval-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue approval:unlink <issue-id> <approval-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue read <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue unread <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue archive <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue unarchive <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue recovery-actions <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue recovery:resolve <issue-id> --outcome restored --source-issue-status todo
 ```
 
 ```sh
-npx paperclipai issue documents <issue-id> [--include-system]
-npx paperclipai issue document:get <issue-id> <key>
-npx paperclipai issue document:put <issue-id> <key> --body-file ./plan.md [--title Plan]
-npx paperclipai issue document:lock <issue-id> <key>
-npx paperclipai issue document:unlock <issue-id> <key>
-npx paperclipai issue document:revisions <issue-id> <key>
-npx paperclipai issue document:restore <issue-id> <key> <revision-id>
-npx paperclipai issue document:delete <issue-id> <key>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue documents <issue-id> [--include-system]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:get <issue-id> <key>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:put <issue-id> <key> --body-file ./plan.md [--title Plan]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:lock <issue-id> <key>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:unlock <issue-id> <key>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:revisions <issue-id> <key>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:restore <issue-id> <key> <revision-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue document:delete <issue-id> <key>
 ```
 
 ```sh
-npx paperclipai issue work-products <issue-id>
-npx paperclipai issue work-product:create <issue-id> --payload-json '{"type":"pull_request","provider":"github","title":"PR"}'
-npx paperclipai issue work-product:update <work-product-id> --payload-json '{"status":"archived"}'
-npx paperclipai issue work-product:delete <work-product-id>
-npx paperclipai issue interactions <issue-id>
-npx paperclipai issue interaction:create <issue-id> --payload-json '{"kind":"request_confirmation","payload":{"version":1,"prompt":"Continue?"}}'
-npx paperclipai issue interaction:accept <issue-id> <interaction-id> [--selected-client-keys key1,key2]
-npx paperclipai issue interaction:reject <issue-id> <interaction-id> [--reason "..."]
-npx paperclipai issue interaction:respond <issue-id> <interaction-id> --answers-json '[{"questionId":"q1","optionIds":["yes"]}]'
-npx paperclipai issue interaction:cancel <issue-id> <interaction-id> [--reason "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue work-products <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue work-product:create <issue-id> --payload-json '{"type":"pull_request","provider":"github","title":"PR"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue work-product:update <work-product-id> --payload-json '{"status":"archived"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue work-product:delete <work-product-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue interactions <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue interaction:create <issue-id> --payload-json '{"kind":"request_confirmation","payload":{"version":1,"prompt":"Continue?"}}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue interaction:accept <issue-id> <interaction-id> [--selected-client-keys key1,key2]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue interaction:reject <issue-id> <interaction-id> [--reason "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue interaction:respond <issue-id> <interaction-id> --answers-json '[{"questionId":"q1","optionIds":["yes"]}]'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue interaction:cancel <issue-id> <interaction-id> [--reason "..."]
 ```
 
 ```sh
-npx paperclipai issue tree-state <issue-id>
-npx paperclipai issue tree-preview <issue-id> --payload-json '{"mode":"pause"}'
-npx paperclipai issue tree-holds <issue-id> [--status active] [--include-members]
-npx paperclipai issue tree-hold:create <issue-id> --payload-json '{"mode":"pause","reason":"review"}'
-npx paperclipai issue tree-hold:get <issue-id> <hold-id>
-npx paperclipai issue tree-hold:release <issue-id> <hold-id> [--payload-json '{"reason":"done"}']
-npx paperclipai issue attachments <issue-id>
-npx paperclipai issue attachment:upload <issue-id> --company-id <company-id> --file ./artifact.txt
-npx paperclipai issue attachment:download <attachment-id> [--out ./artifact.txt]
-npx paperclipai issue attachment:delete <attachment-id>
-npx paperclipai issue label:list --company-id <company-id>
-npx paperclipai issue label:create --company-id <company-id> --name bug --color '#ff0000'
-npx paperclipai issue label:delete <label-id>
-npx paperclipai issue feedback:votes <issue-id>
-npx paperclipai issue feedback:vote <issue-id> --payload-json '{"targetType":"issue_comment","targetId":"...","vote":"up"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue tree-state <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue tree-preview <issue-id> --payload-json '{"mode":"pause"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue tree-holds <issue-id> [--status active] [--include-members]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue tree-hold:create <issue-id> --payload-json '{"mode":"pause","reason":"review"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue tree-hold:get <issue-id> <hold-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue tree-hold:release <issue-id> <hold-id> [--payload-json '{"reason":"done"}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue attachments <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue attachment:upload <issue-id> --company-id <company-id> --file ./artifact.txt
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue attachment:download <attachment-id> [--out ./artifact.txt]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue attachment:delete <attachment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue label:list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue label:create --company-id <company-id> --name bug --color '#ff0000'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue label:delete <label-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue feedback:votes <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue feedback:vote <issue-id> --payload-json '{"targetType":"issue_comment","targetId":"...","vote":"up"}'
 ```
 
 ## Project Commands
 
 ```sh
-npx paperclipai project list --company-id <company-id>
-npx paperclipai project get <project-id-or-shortname> [--company-id <company-id>]
-npx paperclipai project create --company-id <company-id> --name "Launch Site" [--goal-ids <id1,id2>] [--lead-agent-id <id>]
-npx paperclipai project update <project-id-or-shortname> [--status in_progress] [--company-id <company-id>]
-npx paperclipai project delete <project-id-or-shortname> --yes [--company-id <company-id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project get <project-id-or-shortname> [--company-id <company-id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project create --company-id <company-id> --name "Launch Site" [--goal-ids <id1,id2>] [--lead-agent-id <id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project update <project-id-or-shortname> [--status in_progress] [--company-id <company-id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project delete <project-id-or-shortname> --yes [--company-id <company-id>]
 ```
 
 Advanced project fields accept JSON:
 
 ```sh
-npx paperclipai project create --company-id <company-id> --name "Ops" --env-json '{"OPENAI_API_KEY":{"kind":"secret","secretName":"openai-api-key"}}'
-npx paperclipai project update <project-id> --execution-workspace-policy-json '{"enabled":true,"defaultMode":"shared_workspace"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project create --company-id <company-id> --name "Ops" --env-json '{"OPENAI_API_KEY":{"kind":"secret","secretName":"openai-api-key"}}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project update <project-id> --execution-workspace-policy-json '{"enabled":true,"defaultMode":"shared_workspace"}'
 ```
 
 ## Goal Commands
 
 ```sh
-npx paperclipai goal list --company-id <company-id>
-npx paperclipai goal get <goal-id>
-npx paperclipai goal create --company-id <company-id> --title "Grow revenue" [--level company] [--status active]
-npx paperclipai goal update <goal-id> [--title "..."] [--status achieved]
-npx paperclipai goal delete <goal-id> --yes
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts goal list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts goal get <goal-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts goal create --company-id <company-id> --title "Grow revenue" [--level company] [--status active]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts goal update <goal-id> [--title "..."] [--status achieved]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts goal delete <goal-id> --yes
 ```
 
 ## Agent Commands
 
 ```sh
-npx paperclipai agent list --company-id <company-id>
-npx paperclipai agent get <agent-id>
-npx paperclipai agent create --company-id <company-id> --payload-json '{"name":"Builder","adapterType":"codex_local"}'
-npx paperclipai agent hire --company-id <company-id> --payload-json '{...}'
-npx paperclipai agent update <agent-id> --payload-json '{"title":"Senior Builder"}'
-npx paperclipai agent delete <agent-id> --yes
-npx paperclipai agent me
-npx paperclipai agent inbox
-npx paperclipai agent inbox-mine --user-id <board-user-id>
-npx paperclipai agent wake <agent-id-or-shortname> [--company-id <company-id>] [--reason "..."] [--payload '{"issueId":"..."}']
-npx paperclipai agent pause <agent-id>
-npx paperclipai agent resume <agent-id>
-npx paperclipai agent approve <agent-id>
-npx paperclipai agent terminate <agent-id>
-npx paperclipai agent heartbeat:invoke <agent-id>
-npx paperclipai agent claude-login <agent-id>
-npx paperclipai agent local-cli <agent-id-or-shortname> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent get <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent create --company-id <company-id> --payload-json '{"name":"Builder","adapterType":"codex_local"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent hire --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent update <agent-id> --payload-json '{"title":"Senior Builder"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent delete <agent-id> --yes
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent me
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent inbox
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent inbox-mine --user-id <board-user-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent wake <agent-id-or-shortname> [--company-id <company-id>] [--reason "..."] [--payload '{"issueId":"..."}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent pause <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent resume <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent approve <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent terminate <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent heartbeat:invoke <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent claude-login <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent local-cli <agent-id-or-shortname> --company-id <company-id>
 ```
 
 Agent configuration and runtime endpoints:
 
 ```sh
-npx paperclipai agent permissions:update <agent-id> --payload-json '{"canCreateAgents":true,"canCreateSkills":true,"canAssignTasks":true}'
-npx paperclipai agent configuration <agent-id>
-npx paperclipai agent config-revisions <agent-id>
-npx paperclipai agent config-revision:get <agent-id> <revision-id>
-npx paperclipai agent config-revision:rollback <agent-id> <revision-id>
-npx paperclipai agent runtime-state <agent-id>
-npx paperclipai agent runtime-state:reset-session <agent-id> [--task-key <key>]
-npx paperclipai agent task-sessions <agent-id>
-npx paperclipai agent skills <agent-id>
-npx paperclipai agent skills:sync <agent-id> --desired-skills paperclip,github --mode add
-npx paperclipai agent instructions-path:update <agent-id> --payload-json '{"path":"/path/to/AGENTS.md"}'
-npx paperclipai agent instructions-bundle <agent-id>
-npx paperclipai agent instructions-bundle:update <agent-id> --payload-json '{"mode":"managed"}'
-npx paperclipai agent instructions-file:get <agent-id> --path AGENTS.md
-npx paperclipai agent instructions-file:put <agent-id> --path AGENTS.md --content-file ./AGENTS.md
-npx paperclipai agent instructions-file:delete <agent-id> --path AGENTS.md
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent permissions:update <agent-id> --payload-json '{"canCreateAgents":true,"canCreateSkills":true,"canAssignTasks":true}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent configuration <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent config-revisions <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent config-revision:get <agent-id> <revision-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent config-revision:rollback <agent-id> <revision-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent runtime-state <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent runtime-state:reset-session <agent-id> [--task-key <key>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent task-sessions <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent skills <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent skills:sync <agent-id> --desired-skills paperclip,github --mode add
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent instructions-path:update <agent-id> --payload-json '{"path":"/path/to/AGENTS.md"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent instructions-bundle <agent-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent instructions-bundle:update <agent-id> --payload-json '{"mode":"managed"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent instructions-file:get <agent-id> --path AGENTS.md
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent instructions-file:put <agent-id> --path AGENTS.md --content-file ./AGENTS.md
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent instructions-file:delete <agent-id> --path AGENTS.md
 ```
 
 Agent config, instructions, skills, project env, environment, secret, and workspace edits affect the next run. Active runs finish with the config they started with. When a saved session, reused workspace, or sandbox lease no longer matches the effective next-run config, ATV-Teams may start fresh execution and records non-sensitive freshness categories in run result JSON and workspace operation logs.
@@ -490,8 +426,8 @@ Agent config, instructions, skills, project env, environment, secret, and worksp
 Example for shortname-based local setup:
 
 ```sh
-npx paperclipai agent local-cli codexcoder --company-id <company-id>
-npx paperclipai agent local-cli claudecoder --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent local-cli codexcoder --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent local-cli claudecoder --company-id <company-id>
 ```
 
 ## Token Commands
@@ -499,18 +435,18 @@ npx paperclipai agent local-cli claudecoder --company-id <company-id>
 Agent API keys are scoped to one company and one agent. Plaintext tokens are printed once at creation.
 
 ```sh
-npx paperclipai token agent create --company-id <company-id> --agent <agent-id-or-name> --name external-worker
-npx paperclipai token agent list --company-id <company-id> --agent <agent-id-or-name>
-npx paperclipai token agent revoke --company-id <company-id> --agent <agent-id-or-name> <key-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token agent create --company-id <company-id> --agent <agent-id-or-name> --name external-worker
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token agent list --company-id <company-id> --agent <agent-id-or-name>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token agent revoke --company-id <company-id> --agent <agent-id-or-name> <key-id>
 ```
 
 Named board API keys use the board authorization model, support revocation and expiration metadata, and are audited server-side.
 
 ```sh
-npx paperclipai token board create --company-id <company-id> --name external-admin
-npx paperclipai token board create --name short-lived --ttl-days 7
-npx paperclipai token board list
-npx paperclipai token board revoke <key-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token board create --company-id <company-id> --name external-admin
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token board create --name short-lived --ttl-days 7
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token board list
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts token board revoke <key-id>
 ```
 
 ## Run Commands
@@ -518,16 +454,16 @@ npx paperclipai token board revoke <key-id>
 `paperclipai run` without a subcommand still bootstraps and starts a local ATV-Teams instance. The subcommands below inspect and control API heartbeat runs.
 
 ```sh
-npx paperclipai run list --company-id <company-id> [--agent-id <agent-id>] [--limit 50]
-npx paperclipai run live --company-id <company-id> [--limit 50] [--min-count 0]
-npx paperclipai run get <run-id>
-npx paperclipai run events <run-id> [--after-seq 0] [--limit 200]
-npx paperclipai run log <run-id> [--offset 0] [--limit-bytes 16384] [--text]
-npx paperclipai run cancel <run-id>
-npx paperclipai run issues <run-id>
-npx paperclipai run workspace-operations <run-id>
-npx paperclipai run workspace-log <operation-id> [--offset 0] [--limit-bytes 16384] [--text]
-npx paperclipai run watchdog-decision <run-id> --decision continue [--reason "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run list --company-id <company-id> [--agent-id <agent-id>] [--limit 50]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run live --company-id <company-id> [--limit 50] [--min-count 0]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run get <run-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run events <run-id> [--after-seq 0] [--limit 200]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run log <run-id> [--offset 0] [--limit-bytes 16384] [--text]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run cancel <run-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run issues <run-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run workspace-operations <run-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run workspace-log <operation-id> [--offset 0] [--limit-bytes 16384] [--text]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run watchdog-decision <run-id> --decision continue [--reason "..."]
 ```
 
 ## Routine Commands
@@ -535,19 +471,19 @@ npx paperclipai run watchdog-decision <run-id> --decision continue [--reason "..
 `paperclipai routines disable-all` remains the local maintenance command. The singular `routine` group maps to the REST API.
 
 ```sh
-npx paperclipai routine list --company-id <company-id> [--project-id <project-id>]
-npx paperclipai routine create --company-id <company-id> --payload-json '{...}'
-npx paperclipai routine get <routine-id>
-npx paperclipai routine update <routine-id> --payload-json '{...}'
-npx paperclipai routine revisions <routine-id>
-npx paperclipai routine revision:restore <routine-id> <revision-id>
-npx paperclipai routine runs <routine-id> [--limit 50]
-npx paperclipai routine run <routine-id> [--payload-json '{...}']
-npx paperclipai routine trigger:create <routine-id> --payload-json '{...}'
-npx paperclipai routine trigger:update <trigger-id> --payload-json '{...}'
-npx paperclipai routine trigger:delete <trigger-id>
-npx paperclipai routine trigger:rotate-secret <trigger-id>
-npx paperclipai routine trigger:fire <public-id> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine list --company-id <company-id> [--project-id <project-id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine get <routine-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine update <routine-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine revisions <routine-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine revision:restore <routine-id> <revision-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine runs <routine-id> [--limit 50]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine run <routine-id> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine trigger:create <routine-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine trigger:update <trigger-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine trigger:delete <trigger-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine trigger:rotate-secret <trigger-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts routine trigger:fire <public-id> [--payload-json '{...}']
 ```
 
 ## Prompt Handoff
@@ -555,10 +491,10 @@ npx paperclipai routine trigger:fire <public-id> [--payload-json '{...}']
 Prompt handoff creates ATV-Teams work. It does not create a chat session.
 
 ```sh
-npx paperclipai agent-prompt <agent-name-or-id> <agent-api-key> "Prompt here"
-npx paperclipai agent prompt --agent <agent-name-or-id> --api-key-env PAPERCLIP_API_KEY "Prompt here"
-npx paperclipai agent prompt --profile my-agent "Prompt here"
-npx paperclipai board prompt --company-id <company-id> --agent <agent-name-or-id> "Prompt here"
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent-prompt <agent-name-or-id> <agent-api-key> "Prompt here"
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent prompt --agent <agent-name-or-id> --api-key-env PAPERCLIP_API_KEY "Prompt here"
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent prompt --profile my-agent "Prompt here"
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts board prompt --company-id <company-id> --agent <agent-name-or-id> "Prompt here"
 ```
 
 By default the command creates a `todo` issue assigned to the target agent and wakes the agent. Use `--issue <issue-id>` to add a comment to existing work, and `--no-wake` to skip the wakeup.
@@ -595,10 +531,10 @@ Browse and inspect commands never mutate company state; `install` adds a catalog
 skill to the company library.
 
 ```sh
-npx paperclipai skills browse [--kind bundled|optional] [--category <slug>] [--query <text>]
-npx paperclipai skills search "<text>" [--kind bundled|optional] [--category <slug>]
-npx paperclipai skills inspect <catalog-id-or-key-or-slug>
-npx paperclipai skills install <catalog-id-or-key-or-slug> [--as <slug>] [--force] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills browse [--kind bundled|optional] [--category <slug>] [--query <text>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills search "<text>" [--kind bundled|optional] [--category <slug>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills inspect <catalog-id-or-key-or-slug>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills install <catalog-id-or-key-or-slug> [--as <slug>] [--force] --company-id <company-id>
 ```
 
 Catalog semantics:
@@ -619,11 +555,11 @@ Catalog semantics:
 Examples:
 
 ```sh
-npx paperclipai skills browse --kind bundled --company-id <company-id>
-npx paperclipai skills search "pull request" --kind bundled
-npx paperclipai skills inspect github-pr-workflow
-npx paperclipai skills install github-pr-workflow --company-id <company-id>
-npx paperclipai skills install paperclipai:optional:browser:agent-browser --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills browse --kind bundled --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills search "pull request" --kind bundled
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills inspect github-pr-workflow
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills install github-pr-workflow --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills install paperclipai:optional:browser:agent-browser --company-id <company-id>
 ```
 
 External GitHub, skills.sh, local-path, and URL sources still go through
@@ -632,18 +568,18 @@ External GitHub, skills.sh, local-path, and URL sources still go through
 ### Company library
 
 ```sh
-npx paperclipai skills list --company-id <company-id>
-npx paperclipai skills show <skill-id-or-key-or-slug> --company-id <company-id>
-npx paperclipai skills file <skill-id-or-key-or-slug> [--path SKILL.md] --company-id <company-id>
-npx paperclipai skills import <source> --company-id <company-id>
-npx paperclipai skills create --name "Review PRs" [--slug review-prs] [--description "..."] [--body-file SKILL.md] --company-id <company-id>
-npx paperclipai skills scan-projects [--project-id <id>...] [--workspace-id <id>...] --company-id <company-id>
-npx paperclipai skills check [skill-id-or-key-or-slug] --company-id <company-id>
-npx paperclipai skills update <skill-id-or-key-or-slug> [--force] --company-id <company-id>
-npx paperclipai skills update --all [--force] --company-id <company-id>
-npx paperclipai skills audit [skill-id-or-key-or-slug] --company-id <company-id>
-npx paperclipai skills reset <skill-id-or-key-or-slug> [--yes] [--force] --company-id <company-id>
-npx paperclipai skills remove <skill-id-or-key-or-slug> --yes --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills show <skill-id-or-key-or-slug> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills file <skill-id-or-key-or-slug> [--path SKILL.md] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills import <source> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills create --name "Review PRs" [--slug review-prs] [--description "..."] [--body-file SKILL.md] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills scan-projects [--project-id <id>...] [--workspace-id <id>...] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills check [skill-id-or-key-or-slug] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills update <skill-id-or-key-or-slug> [--force] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills update --all [--force] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills audit [skill-id-or-key-or-slug] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills reset <skill-id-or-key-or-slug> [--yes] [--force] --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills remove <skill-id-or-key-or-slug> --yes --company-id <company-id>
 ```
 
 `skills import <source>` accepts a skills.sh URL, the equivalent
@@ -669,9 +605,9 @@ maintenance loop for catalog-installed skills:
 ### Agent attach
 
 ```sh
-npx paperclipai skills agent list <agent-id-or-shortname> --company-id <company-id>
-npx paperclipai skills agent sync <agent-id-or-shortname> --skill <skill-id-or-key-or-slug> [--skill <skill-id-or-key-or-slug>...] --mode <add|remove|replace> --company-id <company-id>
-npx paperclipai skills agent clear <agent-id-or-shortname> --yes --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills agent list <agent-id-or-shortname> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills agent sync <agent-id-or-shortname> --skill <skill-id-or-key-or-slug> [--skill <skill-id-or-key-or-slug>...] --mode <add|remove|replace> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skills agent clear <agent-id-or-shortname> --yes --company-id <company-id>
 ```
 
 `skills agent sync` requires a merge mode and returns the resulting adapter
@@ -699,11 +635,11 @@ change company state. `preview` runs the company import planner, and `install`
 imports the catalog team into an existing company.
 
 ```sh
-npx paperclipai teams browse [--kind bundled|optional] [--category <slug>] [--query <text>]
-npx paperclipai teams search "<text>" [--kind bundled|optional] [--category <slug>]
-npx paperclipai teams inspect <catalog-id-or-key-or-slug> [--file TEAM.md]
-npx paperclipai teams preview <catalog-id-or-key-or-slug> --company-id <company-id>
-npx paperclipai teams install <catalog-id-or-key-or-slug> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts teams browse [--kind bundled|optional] [--category <slug>] [--query <text>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts teams search "<text>" [--kind bundled|optional] [--category <slug>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts teams inspect <catalog-id-or-key-or-slug> [--file TEAM.md]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts teams preview <catalog-id-or-key-or-slug> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts teams install <catalog-id-or-key-or-slug> --company-id <company-id>
 ```
 
 Preview/install options:
@@ -731,22 +667,22 @@ Preview/install options:
 ## Secrets Commands
 
 ```sh
-npx paperclipai secrets list --company-id <company-id>
-npx paperclipai secrets declarations --company-id <company-id> [--include agents,projects] [--kind secret]
-npx paperclipai secrets create --company-id <company-id> --name anthropic-api-key --value-env ANTHROPIC_API_KEY
-npx paperclipai secrets link --company-id <company-id> --name prod-stripe-key --provider aws_secrets_manager --external-ref <provider-ref>
-npx paperclipai secrets doctor --company-id <company-id>
-npx paperclipai secrets provider-configs --company-id <company-id>
-npx paperclipai secrets provider-config:create --company-id <company-id> --payload-json '{...}'
-npx paperclipai secrets provider-config:discovery-preview --company-id <company-id> --payload-json '{...}'
-npx paperclipai secrets provider-config:get <config-id>
-npx paperclipai secrets provider-config:update <config-id> --payload-json '{...}'
-npx paperclipai secrets provider-config:default <config-id>
-npx paperclipai secrets provider-config:health <config-id>
-npx paperclipai secrets provider-config:delete <config-id>
-npx paperclipai secrets remote-import:preview --company-id <company-id> --payload-json '{...}'
-npx paperclipai secrets remote-import --company-id <company-id> --payload-json '{...}'
-npx paperclipai secrets migrate-inline-env --company-id <company-id> [--apply]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets declarations --company-id <company-id> [--include agents,projects] [--kind secret]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets create --company-id <company-id> --name anthropic-api-key --value-env ANTHROPIC_API_KEY
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets link --company-id <company-id> --name prod-stripe-key --provider aws_secrets_manager --external-ref <provider-ref>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets doctor --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-configs --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:discovery-preview --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:get <config-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:update <config-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:default <config-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:health <config-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets provider-config:delete <config-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets remote-import:preview --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets remote-import --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts secrets migrate-inline-env --company-id <company-id> [--apply]
 ```
 
 Secret listing and declarations never print secret values. `create` accepts
@@ -766,78 +702,78 @@ commands above. See the
 ## Approval Commands
 
 ```sh
-npx paperclipai approval list --company-id <company-id> [--status pending]
-npx paperclipai approval get <approval-id>
-npx paperclipai approval create --company-id <company-id> --type hire_agent --payload '{"name":"..."}' [--issue-ids <id1,id2>]
-npx paperclipai approval approve <approval-id> [--decision-note "..."]
-npx paperclipai approval reject <approval-id> [--decision-note "..."]
-npx paperclipai approval request-revision <approval-id> [--decision-note "..."]
-npx paperclipai approval resubmit <approval-id> [--payload '{"...":"..."}']
-npx paperclipai approval comment <approval-id> --body "..."
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval list --company-id <company-id> [--status pending]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval get <approval-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval create --company-id <company-id> --type hire_agent --payload '{"name":"..."}' [--issue-ids <id1,id2>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval approve <approval-id> [--decision-note "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval reject <approval-id> [--decision-note "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval request-revision <approval-id> [--decision-note "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval resubmit <approval-id> [--payload '{"...":"..."}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts approval comment <approval-id> --body "..."
 ```
 
 ## Activity Commands
 
 ```sh
-npx paperclipai activity list --company-id <company-id> [--agent-id <agent-id>] [--entity-type issue] [--entity-id <id>]
-npx paperclipai activity create --company-id <company-id> --payload-json '{...}'
-npx paperclipai activity issue <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts activity list --company-id <company-id> [--agent-id <agent-id>] [--entity-type issue] [--entity-id <id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts activity create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts activity issue <issue-id>
 ```
 
 ## Dashboard Commands
 
 ```sh
-npx paperclipai dashboard get --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts dashboard get --company-id <company-id>
 ```
 
 ## Org And Agent Config Commands
 
 ```sh
-npx paperclipai whoami
-npx paperclipai openapi
-npx paperclipai org get --company-id <company-id>
-npx paperclipai org svg --company-id <company-id> [--out org.svg]
-npx paperclipai org png --company-id <company-id> [--out org.png]
-npx paperclipai agent-config list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts whoami
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts openapi
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts org get --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts org svg --company-id <company-id> [--out org.svg]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts org png --company-id <company-id> [--out org.png]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent-config list --company-id <company-id>
 ```
 
 ## Access, Profile, And Instance Commands
 
 ```sh
-npx paperclipai profile session
-npx paperclipai profile get
-npx paperclipai profile update --payload-json '{...}'
-npx paperclipai profile company-user <user-slug> --company-id <company-id>
-npx paperclipai invite list --company-id <company-id>
-npx paperclipai invite create --company-id <company-id> --payload-json '{...}'
-npx paperclipai invite revoke <invite-id>
-npx paperclipai invite show <token>
-npx paperclipai invite accept <token> [--payload-json '{...}']
-npx paperclipai invite onboarding:text <token>
-npx paperclipai join list --company-id <company-id> [--status pending_approval]
-npx paperclipai join approve <request-id> --company-id <company-id>
-npx paperclipai join reject <request-id> --company-id <company-id>
-npx paperclipai join claim-key <request-id> --claim-secret <secret>
-npx paperclipai member list --company-id <company-id>
-npx paperclipai member update <member-id> --company-id <company-id> --payload-json '{...}'
-npx paperclipai member role-and-grants <member-id> --company-id <company-id> --payload-json '{...}'
-npx paperclipai member permissions <member-id> --company-id <company-id> --payload-json '{...}'
-npx paperclipai member archive <member-id> --company-id <company-id> [--payload-json '{...}']
-npx paperclipai admin user list [--query <text>]
-npx paperclipai admin user promote <user-id>
-npx paperclipai admin user demote <user-id>
-npx paperclipai admin user company-access <user-id>
-npx paperclipai admin user company-access:update <user-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts profile session
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts profile get
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts profile update --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts profile company-user <user-slug> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts invite list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts invite create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts invite revoke <invite-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts invite show <token>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts invite accept <token> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts invite onboarding:text <token>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts join list --company-id <company-id> [--status pending_approval]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts join approve <request-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts join reject <request-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts join claim-key <request-id> --claim-secret <secret>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts member list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts member update <member-id> --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts member role-and-grants <member-id> --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts member permissions <member-id> --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts member archive <member-id> --company-id <company-id> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts admin user list [--query <text>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts admin user promote <user-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts admin user demote <user-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts admin user company-access <user-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts admin user company-access:update <user-id> --payload-json '{...}'
 ```
 
 CLI auth challenge endpoints are also exposed for tooling that needs the raw challenge lifecycle:
 
 ```sh
-npx paperclipai auth challenge create --payload-json '{...}'
-PAPERCLIP_CHALLENGE_SECRET=<challenge-secret> npx paperclipai auth challenge get <challenge-id> --token-env PAPERCLIP_CHALLENGE_SECRET
-PAPERCLIP_CHALLENGE_SECRET=<challenge-secret> npx paperclipai auth challenge approve <challenge-id> --token-env PAPERCLIP_CHALLENGE_SECRET
-PAPERCLIP_CHALLENGE_SECRET=<challenge-secret> npx paperclipai auth challenge cancel <challenge-id> --token-env PAPERCLIP_CHALLENGE_SECRET
-npx paperclipai auth revoke-current
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts auth challenge create --payload-json '{...}'
+PAPERCLIP_CHALLENGE_SECRET=<challenge-secret> node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts auth challenge get <challenge-id> --token-env PAPERCLIP_CHALLENGE_SECRET
+PAPERCLIP_CHALLENGE_SECRET=<challenge-secret> node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts auth challenge approve <challenge-id> --token-env PAPERCLIP_CHALLENGE_SECRET
+PAPERCLIP_CHALLENGE_SECRET=<challenge-secret> node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts auth challenge cancel <challenge-id> --token-env PAPERCLIP_CHALLENGE_SECRET
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts auth revoke-current
 ```
 
 `--token <challenge-secret>` is still supported for compatibility, but `--token-env` avoids putting challenge secrets in shell history or process arguments.
@@ -845,33 +781,33 @@ npx paperclipai auth revoke-current
 ## Instance Settings Commands
 
 ```sh
-npx paperclipai instance scheduler-heartbeats
-npx paperclipai instance settings:general
-npx paperclipai instance settings:general:update --payload-json '{...}'
-npx paperclipai instance settings:experimental
-npx paperclipai instance settings:experimental:update --payload-json '{...}'
-npx paperclipai instance database-backup
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts instance scheduler-heartbeats
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts instance settings:general
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts instance settings:general:update --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts instance settings:experimental
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts instance settings:experimental:update --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts instance database-backup
 ```
 
 Experimental features are opt-in and are provided without compatibility guarantees. They may break, change, or be removed at any time. Use them at your own risk.
 
 ```sh
-npx paperclipai sidebar preferences
-npx paperclipai sidebar preferences:update --payload-json '{...}'
-npx paperclipai sidebar project-preferences --company-id <company-id>
-npx paperclipai sidebar project-preferences:update --company-id <company-id> --payload-json '{...}'
-npx paperclipai sidebar badges --company-id <company-id>
-npx paperclipai inbox dismissals --company-id <company-id>
-npx paperclipai inbox dismiss --company-id <company-id> --payload-json '{"itemKey":"run:<run-id>"}'
-npx paperclipai board-claim show <token>
-npx paperclipai board-claim claim <token> [--payload-json '{...}']
-npx paperclipai openclaw invite-prompt --company-id <company-id> --payload-json '{...}'
-npx paperclipai available-skill list
-npx paperclipai available-skill index
-npx paperclipai available-skill get <skill-name>
-npx paperclipai llm agent-configuration
-npx paperclipai llm agent-configuration:adapter <adapter-type>
-npx paperclipai llm agent-icons
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts sidebar preferences
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts sidebar preferences:update --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts sidebar project-preferences --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts sidebar project-preferences:update --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts sidebar badges --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts inbox dismissals --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts inbox dismiss --company-id <company-id> --payload-json '{"itemKey":"run:<run-id>"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts board-claim show <token>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts board-claim claim <token> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts openclaw invite-prompt --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts available-skill list
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts available-skill index
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts available-skill get <skill-name>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts llm agent-configuration
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts llm agent-configuration:adapter <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts llm agent-icons
 ```
 
 Hermes gateway uses the generic invite/join commands above rather than
@@ -884,101 +820,101 @@ commands. See [HERMES_GATEWAY_ONBOARDING.md](./HERMES_GATEWAY_ONBOARDING.md).
 ## Adapter, Asset, And Skill Commands
 
 ```sh
-npx paperclipai adapter list
-npx paperclipai adapter install --payload-json '{"packageName":"@scope/adapter","version":"1.2.3"}'
-npx paperclipai adapter get <adapter-type>
-npx paperclipai adapter update <adapter-type> --payload-json '{"disabled":true}'
-npx paperclipai adapter override <adapter-type> --payload-json '{"paused":true}'
-npx paperclipai adapter reload <adapter-type>
-npx paperclipai adapter reinstall <adapter-type>
-npx paperclipai adapter delete <adapter-type>
-npx paperclipai adapter config-schema <adapter-type>
-npx paperclipai adapter ui-parser <adapter-type>
-npx paperclipai adapter models <adapter-type> --company-id <company-id> [--refresh] [--environment-id <id>]
-npx paperclipai adapter model-profiles <adapter-type> --company-id <company-id>
-npx paperclipai adapter detect-model <adapter-type> --company-id <company-id>
-npx paperclipai adapter test-environment <adapter-type> --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter list
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter install --payload-json '{"packageName":"@scope/adapter","version":"1.2.3"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter get <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter update <adapter-type> --payload-json '{"disabled":true}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter override <adapter-type> --payload-json '{"paused":true}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter reload <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter reinstall <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter delete <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter config-schema <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter ui-parser <adapter-type>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter models <adapter-type> --company-id <company-id> [--refresh] [--environment-id <id>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter model-profiles <adapter-type> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter detect-model <adapter-type> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts adapter test-environment <adapter-type> --company-id <company-id> --payload-json '{...}'
 ```
 
 ```sh
-npx paperclipai asset image:upload --company-id <company-id> --file ./image.png [--namespace docs] [--alt "..."]
-npx paperclipai asset logo:upload --company-id <company-id> --file ./logo.svg
-npx paperclipai asset content <asset-id> --out ./asset.bin
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts asset image:upload --company-id <company-id> --file ./image.png [--namespace docs] [--alt "..."]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts asset logo:upload --company-id <company-id> --file ./logo.svg
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts asset content <asset-id> --out ./asset.bin
 ```
 
 ```sh
-npx paperclipai skill list --company-id <company-id>
-npx paperclipai skill get <skill-id> --company-id <company-id>
-npx paperclipai skill file <skill-id> --company-id <company-id> [--path SKILL.md]
-npx paperclipai skill create --company-id <company-id> --payload-json '{...}'
-npx paperclipai skill file:update <skill-id> --company-id <company-id> --payload-json '{...}'
-npx paperclipai skill import --company-id <company-id> --payload-json '{"source":"github:owner/repo/path"}'
-npx paperclipai skill scan-projects --company-id <company-id> --payload-json '{...}'
-npx paperclipai skill update-status <skill-id> --company-id <company-id>
-npx paperclipai skill install-update <skill-id> --company-id <company-id>
-npx paperclipai skill delete <skill-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill get <skill-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill file <skill-id> --company-id <company-id> [--path SKILL.md]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill file:update <skill-id> --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill import --company-id <company-id> --payload-json '{"source":"github:owner/repo/path"}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill scan-projects --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill update-status <skill-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill install-update <skill-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts skill delete <skill-id> --company-id <company-id>
 ```
 
 ## Cost, Finance, And Budget Commands
 
 ```sh
-npx paperclipai cost summary --company-id <company-id>
-npx paperclipai cost by-agent --company-id <company-id>
-npx paperclipai cost by-agent-model --company-id <company-id>
-npx paperclipai cost by-provider --company-id <company-id>
-npx paperclipai cost by-biller --company-id <company-id>
-npx paperclipai cost by-project --company-id <company-id>
-npx paperclipai cost window-spend --company-id <company-id>
-npx paperclipai cost quota-windows --company-id <company-id>
-npx paperclipai cost issue <issue-id>
-npx paperclipai cost event:create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost summary --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost by-agent --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost by-agent-model --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost by-provider --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost by-biller --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost by-project --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost window-spend --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost quota-windows --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost issue <issue-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts cost event:create --company-id <company-id> --payload-json '{...}'
 ```
 
 ```sh
-npx paperclipai finance event:create --company-id <company-id> --payload-json '{...}'
-npx paperclipai finance events --company-id <company-id>
-npx paperclipai finance summary --company-id <company-id>
-npx paperclipai finance by-biller --company-id <company-id>
-npx paperclipai finance by-kind --company-id <company-id>
-npx paperclipai budget overview --company-id <company-id>
-npx paperclipai budget policy:upsert --company-id <company-id> --payload-json '{...}'
-npx paperclipai budget company:update --company-id <company-id> --payload-json '{...}'
-npx paperclipai budget agent:update <agent-id> --payload-json '{...}'
-npx paperclipai budget incident:resolve <incident-id> --company-id <company-id> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts finance event:create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts finance events --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts finance summary --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts finance by-biller --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts finance by-kind --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts budget overview --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts budget policy:upsert --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts budget company:update --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts budget agent:update <agent-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts budget incident:resolve <incident-id> --company-id <company-id> [--payload-json '{...}']
 ```
 
 ## Workspace And Environment Commands
 
 ```sh
-npx paperclipai workspace list --company-id <company-id>
-npx paperclipai workspace get <execution-workspace-id>
-npx paperclipai workspace close-readiness <execution-workspace-id>
-npx paperclipai workspace operations <execution-workspace-id>
-npx paperclipai workspace update <execution-workspace-id> --payload-json '{...}'
-npx paperclipai workspace runtime-service <execution-workspace-id> start --payload-json '{...}'
-npx paperclipai workspace runtime-command <execution-workspace-id> run --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace get <execution-workspace-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace close-readiness <execution-workspace-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace operations <execution-workspace-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace update <execution-workspace-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace runtime-service <execution-workspace-id> start --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts workspace runtime-command <execution-workspace-id> run --payload-json '{...}'
 ```
 
 ```sh
-npx paperclipai environment list --company-id <company-id>
-npx paperclipai environment capabilities --company-id <company-id>
-npx paperclipai environment create --company-id <company-id> --payload-json '{...}'
-npx paperclipai environment get <environment-id>
-npx paperclipai environment leases <environment-id>
-npx paperclipai environment lease <lease-id>
-npx paperclipai environment update <environment-id> --payload-json '{...}'
-npx paperclipai environment delete <environment-id>
-npx paperclipai environment probe <environment-id>
-npx paperclipai environment probe-config --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment list --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment capabilities --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment create --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment get <environment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment leases <environment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment lease <lease-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment update <environment-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment delete <environment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment probe <environment-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts environment probe-config --company-id <company-id> --payload-json '{...}'
 ```
 
 ```sh
-npx paperclipai project-workspace list <project-id>
-npx paperclipai project-workspace create <project-id> --payload-json '{...}'
-npx paperclipai project-workspace update <project-id> <workspace-id> --payload-json '{...}'
-npx paperclipai project-workspace delete <project-id> <workspace-id>
-npx paperclipai project-workspace runtime-service <project-id> <workspace-id> restart --payload-json '{...}'
-npx paperclipai project-workspace runtime-command <project-id> <workspace-id> run --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project-workspace list <project-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project-workspace create <project-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project-workspace update <project-id> <workspace-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project-workspace delete <project-id> <workspace-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project-workspace runtime-service <project-id> <workspace-id> restart --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts project-workspace runtime-command <project-id> <workspace-id> run --payload-json '{...}'
 ```
 
 ## Plugin Commands
@@ -986,36 +922,36 @@ npx paperclipai project-workspace runtime-command <project-id> <workspace-id> ru
 Existing plugin lifecycle commands remain available: `plugin init`, `list`, `install`, `uninstall`, `enable`, `disable`, `inspect`, and `examples`.
 
 ```sh
-npx paperclipai plugin ui-contributions
-npx paperclipai plugin tools
-npx paperclipai plugin tool:execute --payload-json '{...}'
-npx paperclipai plugin health <plugin-id>
-npx paperclipai plugin logs <plugin-id>
-npx paperclipai plugin upgrade <plugin-id>
-npx paperclipai plugin config <plugin-id> --company-id <company-id>
-npx paperclipai plugin config:set <plugin-id> --company-id <company-id> --payload-json '{"configJson":{...}}'
-npx paperclipai plugin config:test <plugin-id> --company-id <company-id> --payload-json '{"configJson":{...}}'
-npx paperclipai plugin jobs <plugin-id>
-npx paperclipai plugin job:runs <plugin-id> <job-id>
-npx paperclipai plugin job:trigger <plugin-id> <job-id> [--payload-json '{...}']
-npx paperclipai plugin webhook <plugin-id> <endpoint-key> [--payload-json '{...}']
-npx paperclipai plugin dashboard <plugin-id>
-npx paperclipai plugin bridge:data <plugin-id> --payload-json '{...}'
-npx paperclipai plugin bridge:action <plugin-id> --payload-json '{...}'
-npx paperclipai plugin bridge:stream <plugin-id> <channel> [--duration-ms 10000]
-npx paperclipai plugin data <plugin-id> <key> --payload-json '{...}'
-npx paperclipai plugin action <plugin-id> <key> --payload-json '{...}'
-npx paperclipai plugin local-folders <plugin-id> --company-id <company-id>
-npx paperclipai plugin local-folder:status <plugin-id> <folder-key> --company-id <company-id>
-npx paperclipai plugin local-folder:validate <plugin-id> <folder-key> --company-id <company-id> [--payload-json '{...}']
-npx paperclipai plugin local-folder:set <plugin-id> <folder-key> --company-id <company-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin ui-contributions
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin tools
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin tool:execute --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin health <plugin-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin logs <plugin-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin upgrade <plugin-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin config <plugin-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin config:set <plugin-id> --company-id <company-id> --payload-json '{"configJson":{...}}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin config:test <plugin-id> --company-id <company-id> --payload-json '{"configJson":{...}}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin jobs <plugin-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin job:runs <plugin-id> <job-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin job:trigger <plugin-id> <job-id> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin webhook <plugin-id> <endpoint-key> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin dashboard <plugin-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin bridge:data <plugin-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin bridge:action <plugin-id> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin bridge:stream <plugin-id> <channel> [--duration-ms 10000]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin data <plugin-id> <key> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin action <plugin-id> <key> --payload-json '{...}'
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin local-folders <plugin-id> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin local-folder:status <plugin-id> <folder-key> --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin local-folder:validate <plugin-id> <folder-key> --company-id <company-id> [--payload-json '{...}']
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin local-folder:set <plugin-id> <folder-key> --company-id <company-id> --payload-json '{...}'
 ```
 
 Feedback traces can be fetched directly by ID when automating export workflows:
 
 ```sh
-npx paperclipai feedback trace <trace-id>
-npx paperclipai feedback bundle <trace-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts feedback trace <trace-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts feedback bundle <trace-id>
 ```
 
 ## Heartbeat Command
@@ -1023,7 +959,7 @@ npx paperclipai feedback bundle <trace-id>
 `heartbeat run` now also supports context/api-key options and uses the shared client stack:
 
 ```sh
-npx paperclipai heartbeat run --agent-id <agent-id> [--api-base http://localhost:3100] [--api-key <token>]
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts heartbeat run --agent-id <agent-id> [--api-base http://localhost:3100] [--api-key <token>]
 ```
 
 ## Local Storage Defaults

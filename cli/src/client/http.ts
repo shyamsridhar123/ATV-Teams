@@ -233,7 +233,7 @@ function buildConnectionErrorMessage(input: {
     "This usually means the ATV-Teams server is not running, the configured URL is wrong, or the request is being blocked before it reaches ATV-Teams.",
     "",
     "Try:",
-    "- Start ATV-Teams with `pnpm dev` (from a source checkout) or `npx paperclipai run`.",
+    "- Start ATV-Teams with `pnpm dev` (from a source checkout) or `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run`.",
     `- Verify the server is reachable with \`curl ${healthUrl}\`.`,
     `- If ATV-Teams is running elsewhere, pass \`--api-base ${input.apiBase.replace(/\/+$/, "")}\` or set \`PAPERCLIP_API_URL\`.`,
   );

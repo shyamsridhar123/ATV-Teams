@@ -9,9 +9,8 @@ import { generateReadme } from "../services/company-export-readme.js";
 // `paperclipai` as a `package.json` script. It appends the argument to a
 // double-quoted `/bin/sh` command string, so the shell reads the argument first
 // and runs command substitution (a backtick pair or `$( )`) and variable
-// expansion (`$NAME`) before the CLI starts. `npx paperclipai` runs the CLI
-// binary directly. It passes the argument as an inert argv value and does not
-// run a shell over the value. `npx paperclipai` is the safe form.
+// expansion (`$NAME`) before the CLI starts. The direct local TSX invocation
+// runs the checked-out CLI and passes the argument as inert argv data.
 //
 // `pnpm exec paperclipai` is not a safe substitute. The root workspace does not
 // depend on the `paperclipai` package, so `pnpm` never links its binary into
@@ -25,7 +24,7 @@ import { generateReadme } from "../services/company-export-readme.js";
 // placeholder, no example value the reader replaces, no interpolation, no path,
 // no ref, no id, and no name. It holds the subcommand and, at most, flags that
 // take no value. Every other `pnpm paperclipai` line is an offender and must use
-// `npx paperclipai` (or the direct-exec form for local source).
+// the direct local TSX invocation.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -474,13 +473,38 @@ function scanForBrokenExecForm(): string[] {
   return offenders;
 }
 
+function recommendsUpstreamNpxForm(line: string): boolean {
+  if (!/\bnpx\s+paperclipai(?:\s|$)/.test(line)) return false;
+  const lower = line.toLowerCase();
+  return !(
+    lower.includes("do not use") ||
+    lower.includes("would fetch") ||
+    lower.includes("can download") ||
+    lower.includes("upstream")
+  );
+}
+
+function scanForUpstreamNpxForm(): string[] {
+  const offenders: string[] = [];
+  for (const relPath of listGuidanceFiles()) {
+    read(relPath)
+      .split("\n")
+      .forEach((line, index) => {
+        if (recommendsUpstreamNpxForm(line)) {
+          offenders.push(`${relPath}:${index + 1}: ${line.trim()}`);
+        }
+      });
+  }
+  return offenders;
+}
+
 describe("paperclipai CLI invocation safety", () => {
   it("allows only exact-allowlist pnpm paperclipai commands on every guidance surface", () => {
     const offenders = scanForOffenders();
     expect(
       offenders,
       `Each pnpm paperclipai line must match an exact allowlist entry, else use ` +
-        `npx paperclipai (or the direct-exec form for local source):\n${offenders.join("\n")}`,
+        `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts (or the direct-exec form for local source):\n${offenders.join("\n")}`,
     ).toEqual([]);
   });
 
@@ -488,7 +512,15 @@ describe("paperclipai CLI invocation safety", () => {
     const offenders = scanForBrokenExecForm();
     expect(
       offenders,
-      `\`pnpm exec paperclipai\` does not resolve the CLI binary; use \`npx paperclipai\`:\n${offenders.join("\n")}`,
+      `\`pnpm exec paperclipai\` does not resolve the CLI binary; use \`node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts\`:\n${offenders.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("never recommends downloading the upstream CLI with npx", () => {
+    const offenders = scanForUpstreamNpxForm();
+    expect(
+      offenders,
+      `This fork must run the checked-out CLI, not unversioned npx paperclipai:\n${offenders.join("\n")}`,
     ).toEqual([]);
   });
 
@@ -496,7 +528,7 @@ describe("paperclipai CLI invocation safety", () => {
   //
   // Each case fails before this change and passes after it. Before, the guard
   // recognized only a limited flag set and skipped any line that mentioned
-  // `npx paperclipai`. So it missed `--config`, `--data-dir`, `--instance`,
+  // `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts`. So it missed `--config`, `--data-dir`, `--instance`,
   // `--bind`, a context-profile value, and worktree path/ref/id/name options,
   // and a mixed safe/unsafe line hid behind its `npx` mention.
 
@@ -520,7 +552,7 @@ describe("paperclipai CLI invocation safety", () => {
 
   it("does not let an npx mention on the same line suppress detection", () => {
     // A mixed line names the safe form but still shows the unsafe command.
-    const mixed = "Prefer npx paperclipai, but pnpm paperclipai issue create --title x also works.";
+    const mixed = "Prefer node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts, but pnpm paperclipai issue create --title x also works.";
     expect(scanText("doc/E.md", mixed)).toHaveLength(1);
   });
 
@@ -718,7 +750,7 @@ describe("paperclipai CLI invocation safety", () => {
     // can paste the guidance into a shell, and that outer shell evaluates a
     // metacharacter span in the host before any CLI receives argv. A direct-exec
     // form does not stop the outer shell. Emit a static `<host>` placeholder only.
-    expect(source).toContain("run npx paperclipai allowed-hostname <host>");
+    expect(source).toContain("run node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname <host>");
     expect(source).not.toContain("allowed-hostname ${hostname}");
     expect(source).not.toContain("pnpm paperclipai allowed-hostname");
     expect(source).not.toContain("pnpm exec paperclipai allowed-hostname");
@@ -728,7 +760,7 @@ describe("paperclipai CLI invocation safety", () => {
     const source = read("server/src/routes/access.ts");
     expect(source).not.toMatch(/pnpm paperclipai allowed-hostname/);
     expect(source).not.toContain("pnpm exec paperclipai allowed-hostname");
-    expect(source).toContain("npx paperclipai allowed-hostname <host>");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname <host>");
     // The onboarding host comes from the request base URL, so a requester
     // controls it. The emitted command must carry a static `<host>` placeholder
     // and never interpolate that value.
@@ -739,7 +771,7 @@ describe("paperclipai CLI invocation safety", () => {
     const source = read("ui/src/lib/agent-onboarding-prompt.ts");
     expect(source).not.toContain("pnpm paperclipai allowed-hostname");
     expect(source).not.toContain("pnpm exec paperclipai allowed-hostname");
-    expect(source).toContain("npx paperclipai allowed-hostname <host>");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts allowed-hostname <host>");
   });
 
   it("emits the safe form in the generated company-export README", () => {
@@ -747,7 +779,7 @@ describe("paperclipai CLI invocation safety", () => {
       { agents: [], projects: [], skills: [], issues: [] } as never,
       { companyName: "Acme", companyDescription: null },
     );
-    expect(readme).toContain("npx paperclipai company import this-github-url-or-folder");
+    expect(readme).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company import this-github-url-or-folder");
     expect(readme).not.toContain("pnpm paperclipai company import");
     expect(readme).not.toContain("pnpm exec paperclipai company import");
   });
@@ -756,7 +788,7 @@ describe("paperclipai CLI invocation safety", () => {
     const source = read("ui/src/pages/CompanyExport.tsx");
     expect(source).not.toContain("pnpm paperclipai company import");
     expect(source).not.toContain("pnpm exec paperclipai company import");
-    expect(source).toContain("npx paperclipai company import");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts company import");
   });
 
   // ── Runtime surfaces and their fixed literal lifecycle hints ─────────────
@@ -765,21 +797,21 @@ describe("paperclipai CLI invocation safety", () => {
   // emit the onboard, bootstrap, and board-setup hints. These three surfaces
   // reach readers on the published install, who have no monorepo checkout. The
   // `pnpm paperclipai` script resolves only inside a checkout, so each surface
-  // must pin the `npx paperclipai` form. The client connection-error hint also
+  // must pin the `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts` form. The client connection-error hint also
   // reaches a reader who may run an installed package, so it keeps `npx`. The
   // env-lab cleanup hint runs from a source checkout and must work from any
   // subdirectory, so it uses the module-resolved direct-exec form (see below).
 
   it("emits the onboard hint from the server startup banner", () => {
     const source = read("server/src/startup-banner.ts");
-    expect(source).toContain("npx paperclipai onboard");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts onboard");
     expect(source).not.toContain("pnpm paperclipai onboard");
     expect(source).not.toContain("pnpm exec paperclipai onboard");
   });
 
   it("emits the safe run form from the client connection-error hint", () => {
     const source = read("cli/src/client/http.ts");
-    expect(source).toContain("npx paperclipai run");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run");
     expect(source).not.toContain("pnpm paperclipai run");
   });
 
@@ -807,14 +839,14 @@ describe("paperclipai CLI invocation safety", () => {
 
   it("emits the bootstrap fallback command from the UI", () => {
     const source = read("ui/src/bootstrapSetup.ts");
-    expect(source).toContain("npx paperclipai auth bootstrap-ceo");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts auth bootstrap-ceo");
     expect(source).not.toContain("pnpm paperclipai auth bootstrap-ceo");
     expect(source).not.toContain("pnpm exec paperclipai auth bootstrap-ceo");
   });
 
   it("emits the setup form from the board skill", () => {
     const source = read("skills/paperclip-board/SKILL.md");
-    expect(source).toContain("npx paperclipai board setup");
+    expect(source).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts board setup");
     expect(source).not.toContain("pnpm paperclipai board setup");
     expect(source).not.toContain("pnpm exec paperclipai board setup");
   });
@@ -824,10 +856,9 @@ describe("paperclipai CLI invocation safety", () => {
   it("documents the safe form in doc/CLI.md", () => {
     const cli = read("doc/CLI.md");
     expect(cli).toContain("Security: safe invocation for content-bearing arguments");
-    expect(cli).toContain("npx paperclipai");
+    expect(cli).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts");
     expect(cli).toContain("inert `argv`");
-    // The policy section states the exact-allowlist rule.
-    expect(cli).toContain("allowlist entry is an offender");
+    expect(cli).toContain("fail-closed guard");
   });
 
   it("documents offline and air-gapped use with a safe cache-only form", () => {
@@ -835,7 +866,7 @@ describe("paperclipai CLI invocation safety", () => {
     const subsection = extractOfflineSubsection(cli);
     // The offline subsection must exist and must name the cache-only safe form.
     expect(subsection).toContain("### Offline and air-gapped use");
-    expect(subsection).toContain("npx --offline paperclipai");
+    expect(subsection).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts");
     // The offline subsection must not present `pnpm paperclipai` or
     // `pnpm exec paperclipai` as a safe or offline form. Only a warning line
     // may name `pnpm paperclipai`, and it must tell the reader not to use it.
@@ -850,7 +881,7 @@ describe("paperclipai CLI invocation safety", () => {
   it("documents the safe form in the agent-facing skill", () => {
     const skill = read("skills/paperclip/SKILL.md");
     expect(skill).toContain("CLI safety");
-    expect(skill).toContain("npx paperclipai");
+    expect(skill).toContain("node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts");
     expect(skill).toContain("Do not use `pnpm paperclipai`");
   });
 
@@ -882,9 +913,9 @@ describe("paperclipai CLI invocation safety", () => {
     expect(offenders[0]).toContain("--name");
   });
 
-  it("does not flag a continued npx paperclipai command", () => {
+  it("does not flag a continued node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts command", () => {
     const source = [
-      "npx paperclipai issue create \\",
+      "node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts issue create \\",
       "  --company-id <company-id> \\",
       '  --title "Investigate checkout conflict"',
     ].join("\n");

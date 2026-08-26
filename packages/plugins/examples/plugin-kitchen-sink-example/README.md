@@ -21,7 +21,7 @@ This plugin is for local development, contributor onboarding, and runtime regres
 
 ```sh
 pnpm --filter @paperclipai/plugin-kitchen-sink-example build
-npx paperclipai plugin install ./packages/plugins/examples/plugin-kitchen-sink-example
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin install ./packages/plugins/examples/plugin-kitchen-sink-example
 ```
 
 Or install it from the ATV-Teams plugin manager as a bundled example once this repo is built.

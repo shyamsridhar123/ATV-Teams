@@ -306,7 +306,7 @@ Run the CLI through the root package script:
 pnpm paperclipai onboard --yes
 ```
 
-Use `pnpm paperclipai`, not `npx paperclipai` — the CLI binary is still named
+Use `pnpm paperclipai`, not `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts` — the CLI binary is still named
 `paperclipai` for back-compat, so `npx` would fetch the upstream package from
 npm rather than running this repo's code.
 

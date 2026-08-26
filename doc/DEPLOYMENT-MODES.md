@@ -87,8 +87,8 @@ Examples:
 
 ```sh
 pnpm paperclipai onboard --yes
-npx paperclipai onboard --yes --bind lan
-npx paperclipai run --bind tailnet
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts onboard --yes --bind lan
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts run --bind tailnet
 ```
 
 `configure --section server` follows the same interactive behavior.

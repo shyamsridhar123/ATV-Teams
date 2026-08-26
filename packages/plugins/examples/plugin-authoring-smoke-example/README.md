@@ -14,7 +14,7 @@ pnpm test
 ## Install Into ATV-Teams
 
 ```bash
-npx paperclipai plugin install ./
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts plugin install ./
 ```
 
 ## Build Options

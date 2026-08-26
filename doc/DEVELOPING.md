@@ -17,7 +17,7 @@ Current implementation status:
 
 ## Running the CLI
 
-This fork is not published to npm, so `npx paperclipai` would fetch the upstream
+This fork is not published to npm, so `node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts` would fetch the upstream
 package instead of this repo. Run the CLI through the root package script:
 
 ```sh

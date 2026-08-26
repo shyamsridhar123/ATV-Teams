@@ -102,7 +102,7 @@ therefore shadows any Codex login already present inside the sandbox image.
 For manual local CLI usage outside heartbeat runs (for example running as `claudecoder` directly), use:
 
 ```sh
-npx paperclipai agent local-cli claudecoder --company-id <company-id>
+node cli/node_modules/tsx/dist/cli.mjs cli/src/index.ts agent local-cli claudecoder --company-id <company-id>
 ```
 
 This installs ATV-Teams skills in `~/.claude/skills`, creates an agent API key, and prints shell exports to run as that agent.
