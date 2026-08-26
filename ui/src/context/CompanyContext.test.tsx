@@ -225,7 +225,7 @@ describe("CompanyProvider", () => {
     // failed request to an empty list, so the effect has to be told the
     // request errored or it reads that as "asked, and owns nothing" and clears
     // the customer's stored company.
-    localStorage.setItem("paperclip.selectedCompanyId", "company-a");
+    localStorage.setItem("atv-teams.selectedCompanyId", "company-a");
     mockCompaniesApi.list.mockRejectedValue(new Error("companies unavailable"));
 
     await act(async () => {
@@ -241,7 +241,7 @@ describe("CompanyProvider", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(localStorage.getItem("paperclip.selectedCompanyId")).toBe("company-a");
+    expect(localStorage.getItem("atv-teams.selectedCompanyId")).toBe("company-a");
   });
 
   it("does not expose a stale stored company id before companies load", async () => {
@@ -310,7 +310,7 @@ describe("CompanyProvider", () => {
       await flushReact();
 
       expect(seen).toEqual([null, "company-1"]);
-      expect(localStorage.getItem("paperclip.selectedCompanyId")).toBe("company-1");
+      expect(localStorage.getItem("atv-teams.selectedCompanyId")).toBe("company-1");
     }
 
     it("drops the previous account's selection and re-reads the list", async () => {
@@ -345,7 +345,7 @@ describe("CompanyProvider", () => {
       await flushReact();
 
       expect(seen).toEqual([null, "company-1", null, "company-2"]);
-      expect(localStorage.getItem("paperclip.selectedCompanyId")).toBe("company-2");
+      expect(localStorage.getItem("atv-teams.selectedCompanyId")).toBe("company-2");
     });
 
     // The replacement fetch is the only thing standing between the account
@@ -384,7 +384,7 @@ describe("CompanyProvider", () => {
 
       expect(captured?.companyListUnavailable).toBe(false);
       expect(seen).toEqual([null, "company-1", null, "company-2"]);
-      expect(localStorage.getItem("paperclip.selectedCompanyId")).toBe("company-2");
+      expect(localStorage.getItem("atv-teams.selectedCompanyId")).toBe("company-2");
     });
 
     // A transient blip must not need the customer to notice and click anything.
@@ -456,7 +456,7 @@ describe("CompanyProvider", () => {
       await flushReact();
 
       expect(seen).toEqual([null, "company-1"]);
-      expect(localStorage.getItem("paperclip.selectedCompanyId")).toBe("company-1");
+      expect(localStorage.getItem("atv-teams.selectedCompanyId")).toBe("company-1");
       expect(mockCompaniesApi.list.mock.calls.length).toBe(listCallsAfterBoot);
     });
   });

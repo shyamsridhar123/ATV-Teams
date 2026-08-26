@@ -207,7 +207,7 @@ describe("CompanyAccess", () => {
     await flushReact();
     await flushReact();
 
-    expect(container.textContent).toContain("Manage the people who can work in Paperclip");
+    expect(container.textContent).toContain("Manage the people who can work in ATV-Teams");
     expect(container.textContent).toContain("Members can collaborate across the company by default");
     expect(container.textContent).toContain("Core keeps this page focused on membership");
     expect(container.textContent).toContain("Humans");

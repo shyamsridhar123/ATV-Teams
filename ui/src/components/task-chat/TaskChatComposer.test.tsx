@@ -261,7 +261,7 @@ describe("TaskChatComposer", () => {
   it("scopes the wrapping placeholder override to the task-chat composer", () => {
     render(<TaskChatComposer onAdd={vi.fn()} workMode="standard" />);
 
-    expect(container.firstElementChild?.classList).toContain("paperclip-task-chat-composer");
+    expect(container.firstElementChild?.classList).toContain("atv-task-chat-composer");
   });
 
   it("reserves enough mobile editor height for a wrapped two-line placeholder", () => {

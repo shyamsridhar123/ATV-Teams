@@ -1160,7 +1160,7 @@ describe("inbox helpers", () => {
   });
 
   it("normalizes invalid inbox filter storage back to safe defaults", () => {
-    localStorage.setItem("atv-teams:inbox:filters:company-1", JSON.stringify({
+    localStorage.setItem("paperclip:inbox:filters:company-1", JSON.stringify({
       allCategoryFilter: "bogus",
       allApprovalFilter: "bogus",
       issueFilters: {

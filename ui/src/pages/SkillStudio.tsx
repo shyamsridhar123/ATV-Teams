@@ -3299,7 +3299,7 @@ function RunDocumentsSection({ documents }: { documents: IssueDocument[] }) {
               </span>
               <span className="ml-auto shrink-0">{relativeTime(document.updatedAt)}</span>
             </div>
-            <MarkdownBody className="paperclip-edit-in-place-content text-sm leading-7" softBreaks={false}>
+            <MarkdownBody className="atv-edit-in-place-content text-sm leading-7" softBreaks={false}>
               {document.body}
             </MarkdownBody>
           </article>
