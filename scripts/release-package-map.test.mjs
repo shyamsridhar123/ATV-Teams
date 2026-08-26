@@ -16,6 +16,7 @@ test("release package manifest covers all public packages with explicit CI enrol
   const packages = buildReleasePackagePlan();
   assert.ok(packages.length > 0);
   assert.ok(packages.every((pkg) => typeof pkg.publishFromCi === "boolean"));
+  assert.ok(packages.every((pkg) => !pkg.dir.includes("\\")));
 });
 
 test("release package list only contains CI-enrolled packages", () => {
@@ -60,6 +61,16 @@ test("Hermes release surface publishes the unified built-in package and keeps ga
   assert.equal(hermes?.publishFromCi, true);
   assert.equal(gatewayShim?.dir, "packages/adapters/hermes-gateway");
   assert.equal(gatewayShim?.publishFromCi, false);
+});
+
+test("Copilot is published before its runtime consumers", () => {
+  const packages = getReleasePackages();
+  const copilotIndex = packages.findIndex((pkg) => pkg.name === "@paperclipai/adapter-copilot-local");
+  const consumerIndexes = ["@paperclipai/server", "@paperclipai/ui", "paperclipai"]
+    .map((name) => packages.findIndex((pkg) => pkg.name === name));
+
+  assert.ok(copilotIndex >= 0);
+  assert.ok(consumerIndexes.every((index) => index > copilotIndex));
 });
 
 test("release package configuration validates successfully", () => {
