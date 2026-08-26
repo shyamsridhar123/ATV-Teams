@@ -1,6 +1,10 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { copyBuildAssets } from "../../scripts/copy-build-assets.mjs";
 
 const packageJsonPath = fileURLToPath(new URL("../../package.json", import.meta.url));
 const copyScriptPath = fileURLToPath(new URL("../../scripts/copy-build-assets.mjs", import.meta.url));
@@ -24,5 +28,18 @@ describe("server package build script", () => {
     expect(copyScript).toContain("dist/onboarding-assets");
     expect(copyScript).toContain("src/built-ins");
     expect(copyScript).toContain("dist/built-ins");
+  });
+
+  it("fails when a required runtime asset tree is missing", async () => {
+    const serverDir = await fs.mkdtemp(path.join(os.tmpdir(), "server-build-assets-"));
+    try {
+      await fs.mkdir(path.join(serverDir, "src", "onboarding-assets"), { recursive: true });
+      expect(() => copyBuildAssets(serverDir)).toThrow(
+        "required source directory is missing: src/built-ins",
+      );
+      expect(existsSync(path.join(serverDir, "dist", "onboarding-assets"))).toBe(true);
+    } finally {
+      await fs.rm(serverDir, { recursive: true, force: true });
+    }
   });
 });
