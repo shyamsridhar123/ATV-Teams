@@ -4,10 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { copyBuildAssets } from "../../scripts/copy-build-assets.mjs";
+import { copyBuildAssets } from "../../scripts/copy-build-assets-lib.mjs";
 
 const packageJsonPath = fileURLToPath(new URL("../../package.json", import.meta.url));
 const copyScriptPath = fileURLToPath(new URL("../../scripts/copy-build-assets.mjs", import.meta.url));
+const copyLibraryPath = fileURLToPath(new URL("../../scripts/copy-build-assets-lib.mjs", import.meta.url));
 
 describe("server package build script", () => {
   it("copies static runtime asset directories into dist", () => {
@@ -24,10 +25,12 @@ describe("server package build script", () => {
     expect(buildScript).toContain("scripts/copy-build-assets.mjs");
 
     const copyScript = readFileSync(copyScriptPath, "utf8");
-    expect(copyScript).toContain("src/onboarding-assets");
-    expect(copyScript).toContain("dist/onboarding-assets");
-    expect(copyScript).toContain("src/built-ins");
-    expect(copyScript).toContain("dist/built-ins");
+    const copyLibrary = readFileSync(copyLibraryPath, "utf8");
+    expect(copyScript).toContain("copyBuildAssets");
+    expect(copyLibrary).toContain("src/onboarding-assets");
+    expect(copyLibrary).toContain("dist/onboarding-assets");
+    expect(copyLibrary).toContain("src/built-ins");
+    expect(copyLibrary).toContain("dist/built-ins");
   });
 
   it("fails when a required runtime asset tree is missing", async () => {
